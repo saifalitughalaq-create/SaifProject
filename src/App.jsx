@@ -107,22 +107,8 @@ const THEMES = [
 
 const STEPS = ["Resume", "Job Description", "Theme", "Generate"];
 
-const callClaude = async (apiKey, resumeText, jobDescription) => {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-calls": "true",
-    },
-    body: JSON.stringify({
-      model: "claude-opus-4-6",
-      max_tokens: 2000,
-      messages: [
-        {
-          role: "user",
-          content: `You are an expert resume writer. Analyze this resume and job description, then generate a perfectly tailored resume.
+const generateResume = async (apiKey, resumeText, jobDescription) => {
+  const prompt = `You are an expert resume writer. Analyze this resume and job description, then generate a perfectly tailored resume.
 
 BASE RESUME:
 ${resumeText}
@@ -157,11 +143,19 @@ Rules:
 - Quantify achievements where possible
 - Keep bullets concise and impactful
 - No em dashes
-- Return ONLY the JSON, no other text`,
-        },
-      ],
-    }),
-  });
+- Return ONLY the JSON, no other text`;
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.4, maxOutputTokens: 2048 },
+      }),
+    }
+  );
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
@@ -169,7 +163,7 @@ Rules:
   }
 
   const data = await response.json();
-  const text = data.content.map((b) => b.text || "").join("");
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
   const clean = text.replace(/```json|```/g, "").trim();
   return JSON.parse(clean);
 };
@@ -256,7 +250,7 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
-      const result = await callClaude(apiKey, resumeText, jobDesc);
+      const result = await generateResume(apiKey, resumeText, jobDesc);
       setGenerated(result);
       setStep(4);
     } catch (err) {
@@ -357,18 +351,18 @@ export default function App() {
         {/* API Key Banner (always visible until key set) */}
         {!apiKey && step < 4 && (
           <div style={{ background: "#fff", border: "1px solid #e0e0e0", borderRadius: "8px", padding: "16px 20px", marginBottom: "28px" }}>
-            <div style={{ fontSize: "13px", fontWeight: "600", marginBottom: "8px" }}>Anthropic API Key</div>
+            <div style={{ fontSize: "13px", fontWeight: "600", marginBottom: "8px" }}>Google Gemini API Key <span style={{ fontWeight: "400", color: "#888" }}>(free)</span></div>
             <div style={{ display: "flex", gap: "8px" }}>
               <input
                 type="password"
-                placeholder="sk-ant-..."
+                placeholder="AIza..."
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 style={{ flex: 1 }}
               />
             </div>
             <div style={{ fontSize: "11px", color: "#999", marginTop: "8px" }}>
-              Your key is used directly in the browser and never stored or sent anywhere else.
+              Get a free key at <strong>aistudio.google.com</strong> — no credit card required. Key stays in your browser only.
             </div>
           </div>
         )}
