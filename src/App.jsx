@@ -216,48 +216,108 @@ export default function App() {
     if (file) handleFile(file);
   }, []);
 
+  const extractThemeFromImage = (file) => new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      try {
+        const SIZE = 180;
+        const canvas = document.createElement("canvas");
+        const scale = Math.min(SIZE / img.width, SIZE / img.height);
+        canvas.width = Math.floor(img.width * scale);
+        canvas.height = Math.floor(img.height * scale);
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        const buckets = {};
+        for (let i = 0; i < data.length; i += 4) {
+          if (data[i + 3] < 128) continue; // skip transparent
+          const r = Math.round(data[i] / 16) * 16;
+          const g = Math.round(data[i + 1] / 16) * 16;
+          const b = Math.round(data[i + 2] / 16) * 16;
+          const k = `${r},${g},${b}`;
+          buckets[k] = (buckets[k] || 0) + 1;
+        }
+
+        const toHex = (r, g, b) => "#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join("");
+        const luminance = (r, g, b) => (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        const saturation = (r, g, b) => {
+          const max = Math.max(r, g, b), min = Math.min(r, g, b);
+          return max === 0 ? 0 : (max - min) / max;
+        };
+
+        const entries = Object.entries(buckets)
+          .map(([k, count]) => { const [r, g, b] = k.split(",").map(Number); return { r, g, b, count, lum: luminance(r, g, b), sat: saturation(r, g, b) }; })
+          .sort((a, b) => b.count - a.count);
+
+        // Background: most common very-light color
+        const bg = entries.find(c => c.lum > 0.82) || { r: 255, g: 255, b: 255 };
+        // Text: most common very-dark color
+        const textCol = entries.find(c => c.lum < 0.25) || { r: 30, g: 30, b: 30 };
+        // Accent: most saturated non-neutral color (sat > 0.25)
+        const accentCandidates = entries.filter(c => c.sat > 0.25 && c.lum > 0.1 && c.lum < 0.85);
+        const accent = accentCandidates.sort((a, b) => (b.sat * b.count) - (a.sat * a.count))[0]
+          || { r: 50, g: 80, b: 160 };
+
+        const bgHex = toHex(bg.r, bg.g, bg.b);
+        const textHex = toHex(textCol.r, textCol.g, textCol.b);
+        const accentHex = toHex(accent.r, accent.g, accent.b);
+        const isDark = luminance(bg.r, bg.g, bg.b) < 0.4;
+
+        // Pick font based on accent hue
+        const hue = Math.atan2(
+          Math.sqrt(3) * (accent.g - accent.b),
+          2 * accent.r - accent.g - accent.b
+        ) * 180 / Math.PI;
+        const isWarm = hue > -30 && hue < 90; // reds, oranges, golds
+        const fontFamily = isWarm ? "'Georgia', serif" : "'Helvetica Neue', Helvetica, sans-serif";
+
+        const alpha22 = accentHex + "38";
+        const alpha44 = accentHex + "70";
+
+        resolve({
+          id: "custom",
+          name: "Custom",
+          desc: "Matched from your image",
+          preview: { bg: bgHex, accent: accentHex, text: textHex },
+          styles: {
+            page: { background: bgHex, color: textHex, fontFamily, padding: "48px 56px", minHeight: "560mm" },
+            name: { fontSize: "30px", fontWeight: "700", color: accentHex, letterSpacing: "2px", textTransform: "uppercase", marginBottom: "4px" },
+            contact: { fontSize: "11px", color: textHex + "aa", letterSpacing: "1px", marginBottom: "28px" },
+            sectionTitle: { fontSize: "10px", fontWeight: "700", color: accentHex, letterSpacing: "3px", textTransform: "uppercase", borderBottom: `1px solid ${alpha44}`, paddingBottom: "6px", marginBottom: "14px", marginTop: "28px" },
+            jobTitle: { fontSize: "14px", fontWeight: "700", color: textHex },
+            company: { fontSize: "12px", color: textHex + "99", fontStyle: "italic", marginBottom: "8px" },
+            bullet: { fontSize: "12px", color: isDark ? "#c8c0b0" : "#444444", lineHeight: "1.7", marginBottom: "4px", paddingLeft: "14px", position: "relative" },
+            summary: { fontSize: "13px", color: isDark ? "#c8c0b0" : "#555555", lineHeight: "1.8" },
+            skillTag: { background: alpha22, border: `1px solid ${alpha44}`, color: accentHex, fontSize: "10px", padding: "3px 10px", borderRadius: "3px", letterSpacing: "0.5px" },
+          },
+        });
+      } catch (e) { reject(e); }
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = () => reject(new Error("Could not read image"));
+    img.src = url;
+  });
+
   const handleThemeUpload = async (file) => {
     if (!file) return;
     const allowed = ["image/jpeg", "image/png", "image/webp"];
     if (!allowed.includes(file.type)) {
-      setCustomThemeError("Please upload a JPG, PNG, or WebP image of your resume template.");
+      setCustomThemeError("Please upload a JPG, PNG, or WebP image.");
       return;
     }
-    if (file.size > 4 * 1024 * 1024) {
-      setCustomThemeError("Image must be under 4MB.");
-      return;
-    }
-
     setCustomThemeLoading(true);
     setCustomThemeError(null);
-
-    // Show preview immediately
-    const previewUrl = URL.createObjectURL(file);
-    setCustomThemePreview(previewUrl);
-
-    // Convert to base64
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const base64 = e.target.result.split(",")[1];
-      try {
-        const res = await fetch("/api/analyze-theme", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ imageBase64: base64, mimeType: file.type }),
-        });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err?.error || "Failed to analyze theme");
-        }
-        const theme = await res.json();
-        setCustomTheme(theme);
-        setSelectedTheme(theme);
-      } catch (err) {
-        setCustomThemeError(err.message || "Could not analyze the image. Try a clearer screenshot.");
-      }
-      setCustomThemeLoading(false);
-    };
-    reader.readAsDataURL(file);
+    setCustomThemePreview(URL.createObjectURL(file));
+    try {
+      const theme = await extractThemeFromImage(file);
+      setCustomTheme(theme);
+      setSelectedTheme(theme);
+    } catch (err) {
+      setCustomThemeError("Could not read the image. Try a clearer screenshot.");
+    }
+    setCustomThemeLoading(false);
   };
 
   const handleGenerate = async () => {
