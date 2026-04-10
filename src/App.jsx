@@ -268,110 +268,89 @@ export default function App() {
     };
   };
 
-  const extractThemeFromImage = (file) => new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      try {
-        const SIZE = 300;
-        const canvas = document.createElement("canvas");
-        const scale = Math.min(SIZE / img.width, SIZE / img.height);
-        const W = Math.floor(img.width * scale);
-        const H = Math.floor(img.height * scale);
-        canvas.width = W; canvas.height = H;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, W, H);
+  const extractThemeFromDocx = async (file) => {
+    const arrayBuffer = await file.arrayBuffer();
 
-        const toHex = (r,g,b) => "#"+[r,g,b].map(v=>v.toString(16).padStart(2,"0")).join("");
-        const lum = (r,g,b) => (0.299*r+0.587*g+0.114*b)/255;
-        const sat = (r,g,b) => { const mx=Math.max(r,g,b),mn=Math.min(r,g,b); return mx===0?0:(mx-mn)/mx; };
+    // Extract styled HTML from DOCX
+    const htmlResult = await mammoth.convertToHtml({ arrayBuffer }, {
+      styleMap: [
+        "p[style-name='Heading 1'] => h1:fresh",
+        "p[style-name='Heading 2'] => h2:fresh",
+      ]
+    });
+    const html = htmlResult.value;
 
-        const getBuckets = (imageData) => {
-          const bk = {};
-          for (let i=0; i<imageData.data.length; i+=4) {
-            if (imageData.data[i+3]<128) continue;
-            const r=Math.round(imageData.data[i]/8)*8,
-                  g=Math.round(imageData.data[i+1]/8)*8,
-                  b=Math.round(imageData.data[i+2]/8)*8;
-            const k=`${r},${g},${b}`; bk[k]=(bk[k]||0)+1;
-          }
-          return Object.entries(bk)
-            .map(([k,count])=>{ const [r,g,b]=k.split(",").map(Number); return {r,g,b,count,lum:lum(r,g,b),sat:sat(r,g,b)}; })
-            .sort((a,b)=>b.count-a.count);
-        };
+    // Parse HTML to extract colors and fonts
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(`<div>${html}</div>`, "text/html");
 
-        // Sample full image for bg + text
-        const allEntries = getBuckets(ctx.getImageData(0, 0, W, H));
-        // Sample top 30% of image — this is where name/header accent usually lives
-        const headerEntries = getBuckets(ctx.getImageData(0, 0, W, Math.floor(H*0.3)));
-        // Sample left 20% strip — often a sidebar with accent color
-        const sideEntries = getBuckets(ctx.getImageData(0, 0, Math.floor(W*0.2), H));
+    const hexColors = new Set();
+    const fontNames = new Set();
 
-        const bg = allEntries.find(c=>c.lum>0.80) || {r:255,g:255,b:255};
-        const textCol = allEntries.find(c=>c.lum<0.22) || {r:30,g:30,b:30};
+    doc.querySelectorAll("[style]").forEach(el => {
+      const style = el.getAttribute("style") || "";
+      // Extract hex colors
+      for (const m of style.matchAll(/color\s*:\s*(#[0-9a-fA-F]{3,6})/gi)) {
+        hexColors.add(m[1].toLowerCase());
+      }
+      // Extract font families
+      for (const m of style.matchAll(/font-family\s*:\s*["']?([^;,"']+)/gi)) {
+        fontNames.add(m[1].trim().toLowerCase());
+      }
+    });
 
-        // Look for accent in header first, then sidebar, then full image
-        const findAccent = (entries) => {
-          const cands = entries.filter(c=>c.sat>0.2&&c.lum>0.08&&c.lum<0.9&&c.count>2);
-          return cands.sort((a,b)=>(b.sat*Math.sqrt(b.count))-(a.sat*Math.sqrt(a.count)))[0];
-        };
-        const accent = findAccent(headerEntries) || findAccent(sideEntries) || findAccent(allEntries) || {r:50,g:80,b:160};
-
-        resolve(buildThemeFromColors(toHex(bg.r,bg.g,bg.b), toHex(textCol.r,textCol.g,textCol.b), toHex(accent.r,accent.g,accent.b)));
-      } catch(e) { reject(e); }
-      URL.revokeObjectURL(url);
+    // Classify colors
+    const toRgb = h => {
+      const s = h.replace("#","");
+      const full = s.length === 3 ? s.split("").map(c=>c+c).join("") : s;
+      return { r: parseInt(full.slice(0,2),16), g: parseInt(full.slice(2,4),16), b: parseInt(full.slice(4,6),16) };
     };
-    img.onerror = () => reject(new Error("Could not read image"));
-    img.src = url;
-  });
+    const lum = ({r,g,b}) => (0.299*r + 0.587*g + 0.114*b) / 255;
+    const sat = ({r,g,b}) => { const mx=Math.max(r,g,b),mn=Math.min(r,g,b); return mx===0?0:(mx-mn)/mx; };
+
+    const colorList = [...hexColors].map(h => ({ h, ...toRgb(h) }))
+      .map(c => ({ ...c, lum: lum(c), sat: sat(c) }));
+
+    const bg      = colorList.find(c => c.lum > 0.85) || { h: "#ffffff" };
+    const textCol = colorList.find(c => c.lum < 0.2)  || { h: "#1a1a1a" };
+    const accent  = colorList
+      .filter(c => c.sat > 0.2 && c.lum > 0.1 && c.lum < 0.85)
+      .sort((a,b) => b.sat - a.sat)[0] || { h: "#2563eb" };
+
+    // Detect font type
+    const fontStr = [...fontNames].join(" ").toLowerCase();
+    const font = fontStr.includes("georgia") || fontStr.includes("garamond") || fontStr.includes("times") || fontStr.includes("cambria") || fontStr.includes("palatino")
+      ? "serif"
+      : fontStr.includes("courier") || fontStr.includes("consolas") || fontStr.includes("mono")
+        ? "mono"
+        : "sans";
+
+    // Detect name style from first heading
+    const h1 = doc.querySelector("h1, strong");
+    const h1Style = h1 ? (h1.getAttribute("style") || "") : "";
+    const nameCaps = h1 ? h1.textContent === h1.textContent.toUpperCase() && h1.textContent.trim().length > 0 : false;
+    const nameItalic = h1Style.includes("italic");
+    const nameCentered = h1Style.includes("center") || (h1 && h1.closest("p")?.getAttribute("style")?.includes("center"));
+
+    return buildThemeFromColors(bg.h, textCol.h, accent.h, { font, nameCaps, nameItalic, nameCentered, divider: "underline", skillShape: "box" });
+  };
 
   const handleThemeUpload = async (file) => {
     if (!file) return;
-    const allowed = ["image/jpeg", "image/png", "image/webp"];
-    if (!allowed.includes(file.type)) {
-      setCustomThemeError("Please upload a JPG, PNG, or WebP image.");
+    const ext = file.name.split(".").pop().toLowerCase();
+    if (ext !== "docx") {
+      setCustomThemeError("Please upload a .docx file.");
       return;
     }
     setCustomThemeLoading(true);
     setCustomThemeError(null);
-    setCustomThemePreview(URL.createObjectURL(file));
-
-    // Try Gemini vision API first (full analysis: fonts, layout, dividers, etc.)
-    let geminiError = null;
+    setCustomThemePreview(null);
     try {
-      const reader = new FileReader();
-      const base64 = await new Promise((resolve, reject) => {
-        reader.onload = e => resolve(e.target.result.split(",")[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-
-      const res = await fetch("/api/analyze-theme", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: base64, mimeType: file.type }),
-      });
-
-      const json = await res.json();
-      if (res.ok && json.styles) {
-        setCustomTheme(json);
-        setSelectedTheme(json);
-        setCustomThemeLoading(false);
-        return;
-      }
-      geminiError = json?.error || `API error ${res.status}`;
-    } catch (e) {
-      geminiError = e.message;
-    }
-
-    // Fallback: Canvas color extraction (colors only)
-    try {
-      const theme = await extractThemeFromImage(file);
+      const theme = await extractThemeFromDocx(file);
       setCustomTheme(theme);
       setSelectedTheme(theme);
-      setCustomThemeError(`Gemini: ${geminiError} — using color extraction only.`);
-    } catch {
-      setCustomThemeError(`Gemini: ${geminiError}`);
+    } catch (err) {
+      setCustomThemeError("Could not read the file. Make sure it's a valid .docx resume.");
     }
     setCustomThemeLoading(false);
   };
@@ -547,7 +526,7 @@ export default function App() {
             {/* Custom theme upload */}
             <div style={{ marginBottom: "24px" }}>
               <div style={{ fontSize: "12px", fontWeight: "600", color: "#444", marginBottom: "10px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                Upload a template
+                Match a template style
               </div>
               <div
                 onClick={() => themeFileRef.current.click()}
@@ -559,13 +538,9 @@ export default function App() {
                   transition: "all 0.15s",
                 }}
               >
-                {customThemePreview ? (
-                  <img src={customThemePreview} alt="Template preview" style={{ width: "72px", height: "72px", objectFit: "cover", borderRadius: "4px", flexShrink: 0, border: "1px solid #e0e0e0" }} />
-                ) : (
-                  <div style={{ width: "72px", height: "72px", background: "#f0f0f0", borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "24px" }}>
-                    🖼
-                  </div>
-                )}
+                <div style={{ width: "56px", height: "56px", background: customTheme ? "#f0fdf4" : "#f0f0f0", borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "22px", border: customTheme ? "1px solid #bbf7d0" : "1px solid #e0e0e0" }}>
+                  {customTheme ? "✓" : "📄"}
+                </div>
                 <div style={{ flex: 1 }}>
                   {customThemeLoading ? (
                     <div>
@@ -646,8 +621,8 @@ export default function App() {
                     </div>
                   ) : (
                     <div>
-                      <div style={{ fontWeight: "600", fontSize: "13px", marginBottom: "3px" }}>Upload a resume screenshot</div>
-                      <div style={{ fontSize: "11px", color: "#888" }}>JPG, PNG, or WebP · max 4MB · AI will match the exact style</div>
+                      <div style={{ fontWeight: "600", fontSize: "13px", marginBottom: "3px" }}>Upload a resume template</div>
+                      <div style={{ fontSize: "11px", color: "#888" }}>.docx only · extracts fonts and colors automatically</div>
                     </div>
                   )}
                   {customThemeError && (
@@ -658,7 +633,7 @@ export default function App() {
               <input
                 ref={themeFileRef}
                 type="file"
-                accept="image/jpeg,image/png,image/webp"
+                accept=".docx"
                 style={{ display: "none" }}
                 onChange={(e) => handleThemeUpload(e.target.files[0])}
               />
