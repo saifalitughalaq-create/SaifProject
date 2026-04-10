@@ -198,8 +198,14 @@ BEGIN OUTPUT (first line: MATCH_SCORE:):`;
     const err = await groqRes.json().catch(() => ({}));
     lastError = err?.error?.message || `Model ${model} failed`;
 
-    const isRetryable = groqRes.status === 429 ||
-      (lastError && (lastError.includes("decommissioned") || lastError.includes("no longer supported") || lastError.includes("not found")));
+    const isRetryable = groqRes.status === 429 || groqRes.status === 404 ||
+      (lastError && (
+        lastError.includes("decommissioned") ||
+        lastError.includes("no longer supported") ||
+        lastError.includes("not found") ||
+        lastError.includes("does not exist") ||
+        lastError.includes("access")
+      ));
     if (!isRetryable) {
       return res.status(groqRes.status).json({ error: lastError });
     }
