@@ -105,7 +105,7 @@ ${jobDescription}
 ---
 BEGIN OUTPUT (start with NAME:):`;
 
-  const MODELS = ["llama-3.3-70b-versatile", "llama-3.1-70b-versatile", "llama-3.1-8b-instant"];
+  const MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "llama3-8b-8192"];
   const systemPrompt = "You are a resume rewriter. Your only job is to rewrite the resume in the exact plain-text format the user provides. Never analyze, score, or review. Never add commentary, preamble, or markdown. Your output must start with NAME: and contain only the formatted resume lines.";
 
   let data = null;
@@ -134,8 +134,10 @@ BEGIN OUTPUT (start with NAME:):`;
     const err = await groqRes.json().catch(() => ({}));
     lastError = err?.error?.message || `Model ${model} failed`;
 
-    // Only continue to next model on rate limit (429)
-    if (groqRes.status !== 429) {
+    // Continue to next model on rate limit or decommissioned model errors
+    const isRetryable = groqRes.status === 429 ||
+      (lastError && (lastError.includes("decommissioned") || lastError.includes("no longer supported") || lastError.includes("not found")));
+    if (!isRetryable) {
       return res.status(groqRes.status).json({ error: lastError });
     }
   }
