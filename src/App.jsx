@@ -416,7 +416,7 @@ export default function App() {
           <div className="fade-in" style={{ textAlign: "center", padding: "32px 0" }}>
             <h1 style={{ fontSize: "22px", fontWeight: "700", marginBottom: "8px" }}>Ready to Generate</h1>
             <p style={{ color: "#666", fontSize: "14px", maxWidth: "380px", margin: "0 auto 24px", lineHeight: "1.6" }}>
-              Claude will tailor your resume to the job description and render it in your chosen theme.
+              AI will rewrite your resume using the job description's exact keywords and language.
             </p>
 
             <div style={{ display: "flex", justifyContent: "center", gap: "12px", marginBottom: "28px", flexWrap: "wrap" }}>
