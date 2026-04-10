@@ -1,47 +1,47 @@
 export const maxDuration = 60;
 
-// Fix 1: Replace literal newlines/tabs inside JSON strings (LLM commonly does this)
-// Fix 2: Balance unclosed brackets/braces
+// Fix literal newlines in strings, balance brackets, and fix mismatched brackets
 function fixJSON(raw) {
   let result = "";
   let inString = false;
   let escape = false;
   const stack = [];
 
-  for (const ch of raw) {
-    if (escape) {
-      result += ch;
-      escape = false;
-      continue;
-    }
-    if (ch === "\\") {
-      escape = true;
-      result += ch;
-      continue;
-    }
-    if (ch === '"') {
-      inString = !inString;
-      result += ch;
-      continue;
-    }
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i];
+
+    if (escape) { result += ch; escape = false; continue; }
+    if (ch === "\\") { escape = true; result += ch; continue; }
+    if (ch === '"') { inString = !inString; result += ch; continue; }
+
     if (inString) {
-      // Escape literal control characters inside strings
       if (ch === "\n") { result += "\\n"; continue; }
       if (ch === "\r") { result += "\\r"; continue; }
       if (ch === "\t") { result += "\\t"; continue; }
       result += ch;
       continue;
     }
-    // Outside strings — track brackets
+
     if (ch === "{") { stack.push("}"); result += ch; }
     else if (ch === "[") { stack.push("]"); result += ch; }
-    else if (ch === "}" || ch === "]") { stack.pop(); result += ch; }
-    else { result += ch; }
+    else if (ch === "}" || ch === "]") {
+      if (stack.length === 0) continue; // extra closing — skip
+      const expected = stack[stack.length - 1];
+      if (expected === ch) {
+        stack.pop();
+        result += ch;
+      } else {
+        // Mismatch: insert the expected closer, then re-process current char
+        result += expected;
+        stack.pop();
+        i--; // re-process current char
+      }
+    } else {
+      result += ch;
+    }
   }
 
-  // Close any unclosed string
   if (inString) result += '"';
-  // Close any unclosed brackets
   result += stack.reverse().join("");
   return result;
 }
