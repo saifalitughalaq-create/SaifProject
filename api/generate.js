@@ -127,12 +127,8 @@ WRITING RULES:
 
 RECOMMENDATION LOGIC:
 - APPLY: 70%+ covered/bridged, no missing core requirements
-- APPLY_WITH_CAUTION: 50-69% covered/bridged, or missing 1-2 preferred (not required) skills
-- RECONSIDER: below 50% covered/bridged, or missing core required qualifications
-
-EXAMPLE — weak vs strong bullet:
-WEAK: "Processed financial transactions with 98% accuracy"
-STRONG: "Owned high-volume intercompany accounting and COGS reconciliation cycles, driving month-end and quarter-end financial close with 98% transaction accuracy across all accounts"
+- APPLY_WITH_CAUTION: 50-69% covered/bridged, or 1-2 preferred skills missing
+- RECONSIDER: below 50% or missing core required qualifications
 
 ---
 OUTPUT FORMAT — exact, no markdown, no extra text:
@@ -169,13 +165,26 @@ ${jobDescription}
 ---
 BEGIN OUTPUT (first line: MATCH_SCORE:):`;
 
-  const MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "llama3-8b-8192"];
+  // Per-model config: 70B has 6000 TPD limit; 8B models have 6000 TPM so cap tokens tightly
+  const MODELS = [
+    { id: "llama-3.3-70b-versatile",  maxTokens: 4096 },
+    { id: "llama-3.1-8b-instant",     maxTokens: 2800 },
+    { id: "llama3-8b-8192",           maxTokens: 2800 },
+  ];
   const systemPrompt = "You are a professional resume writer and career advisor. Completely rewrite resumes from scratch in the exact plain-text format given. Never fabricate skills, tools, or metrics. Output plain text only — no markdown, no preamble. First line must be MATCH_SCORE:";
 
   let data = null;
   let lastError = null;
 
-  for (const model of MODELS) {
+  for (const { id: model, maxTokens } of MODELS) {
+    // For smaller models, trim inputs so total request stays under 6000 TPM
+    const isSmall = maxTokens <= 2800;
+    const resumeInput  = isSmall ? resumeText.slice(0, 3000)  : resumeText;
+    const jdInput      = isSmall ? jobDescription.slice(0, 2000) : jobDescription;
+    const promptToSend = prompt
+      .replace(resumeText, resumeInput)
+      .replace(jobDescription, jdInput);
+
     const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
@@ -183,10 +192,10 @@ BEGIN OUTPUT (first line: MATCH_SCORE:):`;
         model,
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: prompt }
+          { role: "user", content: promptToSend }
         ],
         temperature: 0.2,
-        max_tokens: 4096,
+        max_tokens: maxTokens,
       }),
     });
 
