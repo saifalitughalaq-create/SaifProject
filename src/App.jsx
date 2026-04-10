@@ -180,11 +180,16 @@ export default function App() {
   const [resumeText, setResumeText] = useState("");
   const [jobDesc, setJobDesc] = useState("");
   const [selectedTheme, setSelectedTheme] = useState(THEMES[0]);
+  const [customTheme, setCustomTheme] = useState(null);
+  const [customThemePreview, setCustomThemePreview] = useState(null);
+  const [customThemeLoading, setCustomThemeLoading] = useState(false);
+  const [customThemeError, setCustomThemeError] = useState(null);
   const [generated, setGenerated] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef();
+  const themeFileRef = useRef();
 
   const handleFile = async (file) => {
     if (!file) return;
@@ -210,6 +215,50 @@ export default function App() {
     const file = e.dataTransfer.files[0];
     if (file) handleFile(file);
   }, []);
+
+  const handleThemeUpload = async (file) => {
+    if (!file) return;
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      setCustomThemeError("Please upload a JPG, PNG, or WebP image of your resume template.");
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      setCustomThemeError("Image must be under 4MB.");
+      return;
+    }
+
+    setCustomThemeLoading(true);
+    setCustomThemeError(null);
+
+    // Show preview immediately
+    const previewUrl = URL.createObjectURL(file);
+    setCustomThemePreview(previewUrl);
+
+    // Convert to base64
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = e.target.result.split(",")[1];
+      try {
+        const res = await fetch("/api/analyze-theme", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imageBase64: base64, mimeType: file.type }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err?.error || "Failed to analyze theme");
+        }
+        const theme = await res.json();
+        setCustomTheme(theme);
+        setSelectedTheme(theme);
+      } catch (err) {
+        setCustomThemeError(err.message || "Could not analyze the image. Try a clearer screenshot.");
+      }
+      setCustomThemeLoading(false);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -377,8 +426,76 @@ export default function App() {
         {step === 2 && (
           <div className="fade-in">
             <h1 style={{ fontSize: "22px", fontWeight: "700", marginBottom: "6px" }}>Choose a Theme</h1>
-            <p style={{ color: "#666", fontSize: "14px", marginBottom: "28px" }}>Pick the visual style that fits your industry.</p>
+            <p style={{ color: "#666", fontSize: "14px", marginBottom: "24px" }}>Pick a preset style or upload any resume image to match its exact design.</p>
 
+            {/* Custom theme upload */}
+            <div style={{ marginBottom: "24px" }}>
+              <div style={{ fontSize: "12px", fontWeight: "600", color: "#444", marginBottom: "10px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                Upload a template
+              </div>
+              <div
+                onClick={() => themeFileRef.current.click()}
+                style={{
+                  border: `1.5px dashed ${selectedTheme.id === "custom" ? "#1a1a1a" : "#d0d0d0"}`,
+                  borderRadius: "8px", padding: "18px 20px", cursor: "pointer",
+                  background: selectedTheme.id === "custom" ? "#f8f8f8" : "#fff",
+                  display: "flex", alignItems: "center", gap: "16px",
+                  transition: "all 0.15s",
+                }}
+              >
+                {customThemePreview ? (
+                  <img src={customThemePreview} alt="Template preview" style={{ width: "72px", height: "72px", objectFit: "cover", borderRadius: "4px", flexShrink: 0, border: "1px solid #e0e0e0" }} />
+                ) : (
+                  <div style={{ width: "72px", height: "72px", background: "#f0f0f0", borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "24px" }}>
+                    🖼
+                  </div>
+                )}
+                <div style={{ flex: 1 }}>
+                  {customThemeLoading ? (
+                    <div>
+                      <div className="spinner" style={{ width: "20px", height: "20px", borderWidth: "2px", margin: "0 0 6px 0" }} />
+                      <div style={{ fontSize: "12px", color: "#888" }}>Analyzing design...</div>
+                    </div>
+                  ) : customTheme ? (
+                    <div>
+                      <div style={{ fontWeight: "600", fontSize: "13px", marginBottom: "3px" }}>Custom theme extracted</div>
+                      <div style={{ fontSize: "11px", color: "#888", marginBottom: "6px" }}>Colors, fonts, and layout detected from your image</div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setSelectedTheme(customTheme); }}
+                        style={{
+                          fontSize: "11px", padding: "3px 10px", borderRadius: "4px", cursor: "pointer",
+                          border: `1px solid ${selectedTheme.id === "custom" ? "#1a1a1a" : "#d0d0d0"}`,
+                          background: selectedTheme.id === "custom" ? "#1a1a1a" : "#fff",
+                          color: selectedTheme.id === "custom" ? "#fff" : "#555",
+                        }}
+                      >
+                        {selectedTheme.id === "custom" ? "✓ Selected" : "Use this theme"}
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{ fontWeight: "600", fontSize: "13px", marginBottom: "3px" }}>Upload a resume screenshot</div>
+                      <div style={{ fontSize: "11px", color: "#888" }}>JPG, PNG, or WebP · max 4MB · AI will match the exact style</div>
+                    </div>
+                  )}
+                  {customThemeError && (
+                    <div style={{ fontSize: "11px", color: "#dc2626", marginTop: "4px" }}>{customThemeError}</div>
+                  )}
+                </div>
+              </div>
+              <input
+                ref={themeFileRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                style={{ display: "none" }}
+                onChange={(e) => handleThemeUpload(e.target.files[0])}
+              />
+            </div>
+
+            {/* Preset themes */}
+            <div style={{ fontSize: "12px", fontWeight: "600", color: "#444", marginBottom: "10px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+              Preset themes
+            </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "12px", marginBottom: "28px" }}>
               {THEMES.map((theme) => (
                 <div
@@ -406,7 +523,7 @@ export default function App() {
 
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <button className="btn-ghost" onClick={() => setStep(1)}>← Back</button>
-              <button className="btn-primary" onClick={() => setStep(3)}>Continue →</button>
+              <button className="btn-primary" onClick={() => setStep(3)} disabled={customThemeLoading}>Continue →</button>
             </div>
           </div>
         )}
@@ -566,7 +683,7 @@ export default function App() {
 
             {/* Inline theme switcher */}
             <div style={{ display: "flex", gap: "6px", marginBottom: "16px", flexWrap: "wrap" }}>
-              {THEMES.map((t) => (
+              {[...THEMES, ...(customTheme ? [customTheme] : [])].map((t) => (
                 <button
                   key={t.id}
                   onClick={() => setSelectedTheme(t)}
