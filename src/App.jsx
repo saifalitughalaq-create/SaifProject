@@ -1,5 +1,8 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import mammoth from "mammoth";
+import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc, setDoc, increment } from "firebase/firestore";
+import { auth, db, googleProvider, isFirebaseReady } from "./firebase";
 
 const THEMES = [
   {
@@ -240,9 +243,109 @@ const THEMES = [
       skillTag: { background: "#1f6e8c18", border: "1px solid #1f6e8c55", color: "#1f6e8c", fontSize: "10px", padding: "3px 10px", borderRadius: "2px", letterSpacing: "0.5px" },
     },
   },
+
+  // ── Minimalist professional ─────────────────────────────────────────────
+  {
+    id: "min-ink",
+    name: "Minimal Ink",
+    desc: "Pure white, typography only",
+    preview: { bg: "#ffffff", accent: "#111111", text: "#111111" },
+    styles: {
+      page: { background: "#ffffff", color: "#111111", fontFamily: "'Georgia', serif", padding: "52px 64px", minHeight: "560mm" },
+      name: { fontSize: "28px", fontWeight: "700", color: "#111111", letterSpacing: "0.5px", marginBottom: "4px" },
+      contact: { fontSize: "11px", color: "#666666", marginBottom: "32px" },
+      sectionTitle: { fontSize: "10px", fontWeight: "700", color: "#111111", textTransform: "uppercase", letterSpacing: "3px", borderBottom: "0.5px solid #cccccc", paddingBottom: "5px", marginBottom: "14px", marginTop: "28px" },
+      jobTitle: { fontSize: "13px", fontWeight: "700", color: "#111111" },
+      company: { fontSize: "11px", color: "#666666", marginBottom: "7px" },
+      bullet: { fontSize: "12px", color: "#333333", lineHeight: "1.8", marginBottom: "4px", paddingLeft: "14px", position: "relative" },
+      summary: { fontSize: "12px", color: "#333333", lineHeight: "1.9" },
+      skillTag: { background: "transparent", border: "none", color: "#333333", fontSize: "12px", padding: "0", borderRadius: "0", letterSpacing: "0" },
+    },
+  },
+  {
+    id: "min-newsprint",
+    name: "Newsprint",
+    desc: "Off-white, serif, editorial",
+    preview: { bg: "#f9f8f5", accent: "#1a1a1a", text: "#2a2a2a" },
+    styles: {
+      page: { background: "#f9f8f5", color: "#2a2a2a", fontFamily: "'Times New Roman', Times, serif", padding: "52px 64px", minHeight: "560mm" },
+      name: { fontSize: "32px", fontWeight: "900", color: "#1a1a1a", letterSpacing: "-0.5px", marginBottom: "2px" },
+      contact: { fontSize: "11px", color: "#666666", marginBottom: "20px", borderBottom: "2px solid #1a1a1a", paddingBottom: "14px" },
+      sectionTitle: { fontSize: "10px", fontWeight: "700", color: "#1a1a1a", textTransform: "uppercase", letterSpacing: "3px", marginBottom: "12px", marginTop: "26px" },
+      jobTitle: { fontSize: "14px", fontWeight: "700", color: "#1a1a1a" },
+      company: { fontSize: "11px", color: "#555555", marginBottom: "7px" },
+      bullet: { fontSize: "12px", color: "#3a3a3a", lineHeight: "1.8", marginBottom: "4px", paddingLeft: "14px", position: "relative" },
+      summary: { fontSize: "13px", color: "#3a3a3a", lineHeight: "1.9", fontStyle: "italic" },
+      skillTag: { background: "transparent", border: "none", color: "#3a3a3a", fontSize: "12px", padding: "0", borderRadius: "0", letterSpacing: "0" },
+    },
+  },
+  {
+    id: "min-arctic",
+    name: "Arctic",
+    desc: "White, icy blue, ultra-clean",
+    preview: { bg: "#ffffff", accent: "#3a7bd5", text: "#1c2b3a" },
+    styles: {
+      page: { background: "#ffffff", color: "#1c2b3a", fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", padding: "52px 64px", minHeight: "560mm" },
+      name: { fontSize: "30px", fontWeight: "300", color: "#1c2b3a", letterSpacing: "3px", textTransform: "uppercase", marginBottom: "4px" },
+      contact: { fontSize: "11px", color: "#6b8099", letterSpacing: "0.5px", marginBottom: "32px" },
+      sectionTitle: { fontSize: "9px", fontWeight: "700", color: "#3a7bd5", textTransform: "uppercase", letterSpacing: "4px", marginBottom: "12px", marginTop: "28px" },
+      jobTitle: { fontSize: "13px", fontWeight: "600", color: "#1c2b3a" },
+      company: { fontSize: "11px", color: "#6b8099", marginBottom: "7px" },
+      bullet: { fontSize: "12px", color: "#2d3f52", lineHeight: "1.75", marginBottom: "4px", paddingLeft: "14px", position: "relative" },
+      summary: { fontSize: "12px", color: "#2d3f52", lineHeight: "1.85" },
+      skillTag: { background: "transparent", border: "none", color: "#2d3f52", fontSize: "12px", padding: "0", borderRadius: "0", letterSpacing: "0" },
+    },
+  },
+  {
+    id: "min-studio",
+    name: "Studio",
+    desc: "Light gray, black, modern",
+    preview: { bg: "#f3f3f3", accent: "#000000", text: "#1a1a1a" },
+    styles: {
+      page: { background: "#f3f3f3", color: "#1a1a1a", fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", padding: "52px 64px", minHeight: "560mm" },
+      name: { fontSize: "34px", fontWeight: "200", color: "#000000", letterSpacing: "5px", textTransform: "uppercase", marginBottom: "4px" },
+      contact: { fontSize: "11px", color: "#888888", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: "36px" },
+      sectionTitle: { fontSize: "8px", fontWeight: "700", color: "#000000", textTransform: "uppercase", letterSpacing: "5px", marginBottom: "14px", marginTop: "28px" },
+      jobTitle: { fontSize: "13px", fontWeight: "600", color: "#000000" },
+      company: { fontSize: "11px", color: "#888888", marginBottom: "8px" },
+      bullet: { fontSize: "12px", color: "#333333", lineHeight: "1.8", marginBottom: "4px", paddingLeft: "14px", position: "relative" },
+      summary: { fontSize: "12px", color: "#333333", lineHeight: "1.9" },
+      skillTag: { background: "transparent", border: "none", color: "#333333", fontSize: "12px", padding: "0", borderRadius: "0", letterSpacing: "0" },
+    },
+  },
+  {
+    id: "min-reed",
+    name: "Reed",
+    desc: "Warm white, slate blue, professional",
+    preview: { bg: "#fafaf8", accent: "#3d5a80", text: "#2c3240" },
+    styles: {
+      page: { background: "#fafaf8", color: "#2c3240", fontFamily: "'Cambria', Georgia, serif", padding: "52px 64px", minHeight: "560mm" },
+      name: { fontSize: "30px", fontWeight: "700", color: "#3d5a80", letterSpacing: "0.5px", marginBottom: "4px" },
+      contact: { fontSize: "11px", color: "#7a8694", marginBottom: "28px" },
+      sectionTitle: { fontSize: "10px", fontWeight: "700", color: "#3d5a80", textTransform: "uppercase", letterSpacing: "2.5px", borderBottom: "1px solid #3d5a8033", paddingBottom: "5px", marginBottom: "14px", marginTop: "26px" },
+      jobTitle: { fontSize: "13px", fontWeight: "700", color: "#2c3240" },
+      company: { fontSize: "11px", color: "#7a8694", fontStyle: "italic", marginBottom: "7px" },
+      bullet: { fontSize: "12px", color: "#3a4252", lineHeight: "1.8", marginBottom: "4px", paddingLeft: "14px", position: "relative" },
+      summary: { fontSize: "12px", color: "#3a4252", lineHeight: "1.9" },
+      skillTag: { background: "transparent", border: "none", color: "#3a4252", fontSize: "12px", padding: "0", borderRadius: "0", letterSpacing: "0" },
+    },
+  },
 ];
 
 const STEPS = ["Resume", "Job Description", "Theme", "Generate"];
+const FREE_LIMIT = 10;
+const LS_KEY = "rt_gens";
+
+const getLocalCount = () => parseInt(localStorage.getItem(LS_KEY) || "0", 10);
+const incLocalCount = () => localStorage.setItem(LS_KEY, getLocalCount() + 1);
+
+async function getFirestoreCount(uid) {
+  const snap = await getDoc(doc(db, "users", uid));
+  return snap.exists() ? (snap.data().gens || 0) : 0;
+}
+async function incFirestoreCount(uid) {
+  await setDoc(doc(db, "users", uid), { gens: increment(1) }, { merge: true });
+}
 
 const generateResume = async (resumeText, jobDescription) => {
   const response = await fetch("/api/generate", {
@@ -270,9 +373,12 @@ const ResumePreview = ({ data, theme }) => {
       <div style={s.summary}>{data.summary}</div>
 
       <div style={s.sectionTitle}>Key Skills</div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "4px" }}>
+      <div style={{ ...s.summary, marginBottom: "4px" }}>
         {data.skills.map((sk, i) => (
-          <span key={i} style={s.skillTag}>{sk}</span>
+          <span key={i}>
+            {i > 0 && <span style={{ color: theme.preview.accent, margin: "0 8px", fontWeight: 700 }}>·</span>}
+            {sk}
+          </span>
         ))}
       </div>
 
@@ -324,8 +430,147 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [dragOver, setDragOver] = useState(false);
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [genCount, setGenCount] = useState(0);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [docxLoading, setDocxLoading] = useState(false);
   const fileRef = useRef();
   const themeFileRef = useRef();
+
+  // Auth listener
+  useEffect(() => {
+    if (!isFirebaseReady) { setAuthLoading(false); return; }
+    return onAuthStateChanged(auth, async (u) => {
+      setUser(u);
+      if (u) {
+        const c = await getFirestoreCount(u.uid);
+        setGenCount(c);
+      } else {
+        setGenCount(getLocalCount());
+      }
+      setAuthLoading(false);
+    });
+  }, []);
+
+  const handleGoogleSignIn = async () => {
+    if (!isFirebaseReady) return;
+    try { await signInWithPopup(auth, googleProvider); } catch {}
+  };
+
+  const handleSignOut = async () => {
+    if (!isFirebaseReady) return;
+    await signOut(auth);
+    setGenCount(getLocalCount());
+  };
+
+  const handleDownloadPDF = async () => {
+    const el = document.getElementById("resume-output");
+    if (!el) return;
+    setPdfLoading(true);
+    try {
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import("html2canvas"),
+        import("jspdf"),
+      ]);
+      const canvas = await html2canvas(el, { scale: 2, useCORS: true, logging: false, backgroundColor: el.style.background || "#ffffff" });
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pw = 210; // A4 width mm
+      const ph = (canvas.height / canvas.width) * pw;
+      const pageH = 297;
+      let yLeft = ph;
+      let yPos = 0;
+      pdf.addImage(imgData, "JPEG", 0, yPos, pw, ph);
+      yLeft -= pageH;
+      while (yLeft > 0) {
+        yPos -= pageH;
+        pdf.addPage();
+        pdf.addImage(imgData, "JPEG", 0, yPos, pw, ph);
+        yLeft -= pageH;
+      }
+      pdf.save(`${(generated?.name || "Resume").replace(/\s+/g, "_")}_Resume.pdf`);
+    } catch (e) { console.error("PDF error:", e); }
+    setPdfLoading(false);
+  };
+
+  const handleDownloadDOCX = async () => {
+    if (!generated) return;
+    setDocxLoading(true);
+    try {
+      const { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, WidthType, TableRow, TableCell, Table, VerticalAlign } = await import("docx");
+      const accent = selectedTheme.preview.accent.replace("#", "").toUpperCase();
+      const darkText = "111111";
+
+      const hr = () => new Paragraph({
+        border: { bottom: { color: accent, space: 1, style: BorderStyle.SINGLE, size: 8 } },
+        spacing: { before: 160, after: 80 },
+      });
+
+      const sectionHead = (text) => new Paragraph({
+        children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 20, color: accent, characterSpacing: 80 })],
+        spacing: { before: 300, after: 120 },
+      });
+
+      const bullet = (text) => new Paragraph({
+        bullet: { level: 0 },
+        children: [new TextRun({ text, size: 22, color: darkText })],
+        spacing: { before: 40, after: 40 },
+      });
+
+      const children = [
+        new Paragraph({
+          children: [new TextRun({ text: generated.name, bold: true, size: 52, color: accent })],
+          spacing: { after: 80 },
+        }),
+        new Paragraph({
+          children: [new TextRun({ text: generated.contact, size: 20, color: "595959" })],
+          spacing: { after: 320 },
+        }),
+      ];
+
+      if (generated.summary) {
+        children.push(sectionHead("Professional Summary"), hr());
+        children.push(new Paragraph({ children: [new TextRun({ text: generated.summary, size: 22, color: darkText, italics: true })], spacing: { after: 200 } }));
+      }
+
+      if (generated.skills?.length) {
+        children.push(sectionHead("Key Skills"), hr());
+        children.push(new Paragraph({ children: [new TextRun({ text: generated.skills.join("  ·  "), size: 22, color: darkText })], spacing: { after: 200 } }));
+      }
+
+      if (generated.experience?.length) {
+        children.push(sectionHead("Professional Experience"), hr());
+        for (const job of generated.experience) {
+          children.push(new Paragraph({ children: [new TextRun({ text: job.title, bold: true, size: 24, color: darkText })], spacing: { before: 120, after: 40 } }));
+          if (job.company) children.push(new Paragraph({ children: [new TextRun({ text: job.company, size: 22, color: "595959", italics: true })], spacing: { after: 80 } }));
+          for (const b of job.bullets || []) children.push(bullet(b));
+        }
+      }
+
+      if (generated.education?.length) {
+        children.push(sectionHead("Education"), hr());
+        for (const edu of generated.education) {
+          children.push(new Paragraph({ children: [new TextRun({ text: edu.degree, bold: true, size: 24, color: darkText })], spacing: { before: 120, after: 40 } }));
+          if (edu.school) children.push(new Paragraph({ children: [new TextRun({ text: edu.school, size: 22, color: "595959", italics: true })], spacing: { after: 80 } }));
+          for (const b of edu.bullets || []) children.push(bullet(b));
+        }
+      }
+
+      const docxDoc = new Document({
+        styles: { default: { document: { run: { font: "Calibri", size: 22 } } } },
+        sections: [{ properties: { page: { margin: { top: 1080, right: 1080, bottom: 1080, left: 1080 } } }, children }],
+      });
+
+      const blob = await Packer.toBlob(docxDoc);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `${(generated.name || "Resume").replace(/\s+/g, "_")}_Resume.docx`;
+      a.click(); URL.revokeObjectURL(url);
+    } catch (e) { console.error("DOCX error:", e); }
+    setDocxLoading(false);
+  };
 
   const handleFile = async (file) => {
     if (!file) return;
@@ -492,10 +737,16 @@ export default function App() {
   };
 
   const handleGenerate = async () => {
+    // Check generation limit
+    const currentCount = user ? await getFirestoreCount(user.uid) : getLocalCount();
+    if (currentCount >= FREE_LIMIT) { setShowPaywall(true); return; }
+
     setLoading(true);
     setError(null);
     try {
       const result = await generateResume(resumeText, jobDesc);
+      if (user) { await incFirestoreCount(user.uid); setGenCount(currentCount + 1); }
+      else { incLocalCount(); setGenCount(currentCount + 1); }
       setGenerated(result);
       setStep(4);
     } catch (err) {
@@ -503,8 +754,6 @@ export default function App() {
     }
     setLoading(false);
   };
-
-  const handlePrint = () => window.print();
 
   const canNext = () => {
     if (step === 0) return resumeText.trim().length > 50;
@@ -568,6 +817,36 @@ export default function App() {
         }
       `}</style>
 
+      {/* Paywall Modal */}
+      {showPaywall && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}
+          onClick={() => setShowPaywall(false)}>
+          <div style={{ background: "#fff", borderRadius: "14px", padding: "36px", maxWidth: "420px", width: "100%", textAlign: "center" }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: "36px", marginBottom: "16px" }}>⚡</div>
+            <h2 style={{ fontSize: "20px", fontWeight: "700", marginBottom: "8px" }}>You've used {FREE_LIMIT} free generations</h2>
+            <p style={{ color: "#666", fontSize: "13px", lineHeight: "1.6", marginBottom: "24px" }}>
+              {user ? "Upgrade to Pro for unlimited tailored resumes." : "Sign in with Google to continue free, or upgrade for unlimited access."}
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {!user && isFirebaseReady && (
+                <button onClick={async () => { await handleGoogleSignIn(); setShowPaywall(false); }}
+                  style={{ background: "#fff", border: "1px solid #d0d0d0", borderRadius: "8px", padding: "11px 20px", fontSize: "13px", cursor: "pointer", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
+                  <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2a10.3 10.3 0 0 0-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92a8.78 8.78 0 0 0 2.68-6.62z"/><path fill="#34A853" d="M9 18a8.6 8.6 0 0 0 5.96-2.18l-2.91-2.26a5.4 5.4 0 0 1-8.07-2.85H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.98 10.71a5.41 5.41 0 0 1 0-3.42V4.96H.96a9 9 0 0 0 0 8.08l3.02-2.33z"/><path fill="#EA4335" d="M9 3.58a4.86 4.86 0 0 1 3.44 1.35l2.58-2.58A8.64 8.64 0 0 0 9 0 9 9 0 0 0 .96 4.96l3.02 2.33A5.36 5.36 0 0 1 9 3.58z"/></svg>
+                  Continue free with Google
+                </button>
+              )}
+              <button style={{ background: "#1a1a1a", color: "#fff", border: "none", borderRadius: "8px", padding: "12px 20px", fontSize: "13px", cursor: "pointer", fontWeight: "600" }}
+                onClick={() => setShowPaywall(false)}>
+                Upgrade to Pro — Coming Soon
+              </button>
+              <button style={{ background: "transparent", border: "none", color: "#888", fontSize: "12px", cursor: "pointer", padding: "4px" }}
+                onClick={() => setShowPaywall(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ borderBottom: "1px solid #e4e4e4", background: "#fff", padding: "0 32px" }}>
         <div style={{ maxWidth: "760px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: "56px" }}>
@@ -575,25 +854,47 @@ export default function App() {
             <span style={{ fontWeight: "700", fontSize: "16px", letterSpacing: "-0.3px" }}>Resume Tailor</span>
             <span style={{ fontSize: "12px", color: "#888", letterSpacing: "0.2px" }}>AI-powered</span>
           </div>
-          {step > 0 && step < 4 && (
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              {STEPS.map((s, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <div style={{
-                    width: "24px", height: "24px", borderRadius: "50%", display: "flex",
-                    alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: "600",
-                    background: i < step ? "#1a1a1a" : i === step ? "#1a1a1a" : "#e8e8e8",
-                    color: i <= step ? "#fff" : "#999",
-                  }}>
-                    {i < step ? "✓" : i + 1}
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            {step > 0 && step < 4 && (
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                {STEPS.map((s, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <div style={{
+                      width: "24px", height: "24px", borderRadius: "50%", display: "flex",
+                      alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: "600",
+                      background: i < step ? "#1a1a1a" : i === step ? "#1a1a1a" : "#e8e8e8",
+                      color: i <= step ? "#fff" : "#999",
+                    }}>
+                      {i < step ? "✓" : i + 1}
+                    </div>
+                    {i < STEPS.length - 1 && (
+                      <div style={{ width: "20px", height: "1px", background: i < step ? "#1a1a1a" : "#e0e0e0" }} />
+                    )}
                   </div>
-                  {i < STEPS.length - 1 && (
-                    <div style={{ width: "20px", height: "1px", background: i < step ? "#1a1a1a" : "#e0e0e0" }} />
-                  )}
+                ))}
+              </div>
+            )}
+            {/* Gen counter */}
+            {!authLoading && (
+              <span style={{ fontSize: "11px", color: genCount >= FREE_LIMIT ? "#dc2626" : "#888", background: "#f4f4f4", padding: "3px 8px", borderRadius: "20px" }}>
+                {genCount}/{FREE_LIMIT} free
+              </span>
+            )}
+            {/* Auth */}
+            {isFirebaseReady && !authLoading && (
+              user ? (
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  {user.photoURL && <img src={user.photoURL} alt="" style={{ width: "28px", height: "28px", borderRadius: "50%", border: "1px solid #e0e0e0" }} />}
+                  <button onClick={handleSignOut} className="btn-ghost" style={{ padding: "5px 12px", fontSize: "12px" }}>Sign out</button>
                 </div>
-              ))}
-            </div>
-          )}
+              ) : (
+                <button onClick={handleGoogleSignIn} style={{ display: "flex", alignItems: "center", gap: "8px", background: "#fff", border: "1px solid #d0d0d0", borderRadius: "7px", padding: "6px 14px", fontSize: "12px", cursor: "pointer", fontWeight: "600" }}>
+                  <svg width="16" height="16" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2a10.3 10.3 0 0 0-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92a8.78 8.78 0 0 0 2.68-6.62z"/><path fill="#34A853" d="M9 18a8.6 8.6 0 0 0 5.96-2.18l-2.91-2.26a5.4 5.4 0 0 1-8.07-2.85H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.98 10.71a5.41 5.41 0 0 1 0-3.42V4.96H.96a9 9 0 0 0 0 8.08l3.02-2.33z"/><path fill="#EA4335" d="M9 3.58a4.86 4.86 0 0 1 3.44 1.35l2.58-2.58A8.64 8.64 0 0 0 9 0 9 9 0 0 0 .96 4.96l3.02 2.33A5.36 5.36 0 0 1 9 3.58z"/></svg>
+                  Sign in with Google
+                </button>
+              )
+            )}
+          </div>
         </div>
       </div>
 
@@ -865,7 +1166,12 @@ export default function App() {
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 <button className="btn-ghost" onClick={() => { setGenerated(null); setStep(2); }}>Change Theme</button>
                 <button className="btn-ghost" onClick={() => { setGenerated(null); setStep(1); }}>Edit JD</button>
-                <button className="btn-primary" onClick={handlePrint}>Download PDF</button>
+                <button className="btn-ghost" onClick={handleDownloadDOCX} disabled={docxLoading}>
+                  {docxLoading ? "Exporting..." : "Download DOCX"}
+                </button>
+                <button className="btn-primary" onClick={handleDownloadPDF} disabled={pdfLoading}>
+                  {pdfLoading ? "Exporting..." : "Download PDF"}
+                </button>
               </div>
             </div>
 
