@@ -216,31 +216,54 @@ export default function App() {
     if (file) handleFile(file);
   }, []);
 
-  const buildThemeFromColors = (bgHex, textHex, accentHex) => {
+  const buildThemeFromColors = (bgHex, textHex, accentHex, opts = {}) => {
+    const {
+      font = "sans",
+      nameCaps = false,
+      nameItalic = false,
+      nameCentered = false,
+      divider = "underline",
+      skillShape = "box",
+    } = opts;
+
     const toRgb = h => ({ r: parseInt(h.slice(1,3),16), g: parseInt(h.slice(3,5),16), b: parseInt(h.slice(5,7),16) });
     const lum = ({r,g,b}) => (0.299*r + 0.587*g + 0.114*b)/255;
-    const acc = toRgb(accentHex);
     const isDark = lum(toRgb(bgHex)) < 0.4;
-    const hue = Math.atan2(Math.sqrt(3)*(acc.g-acc.b), 2*acc.r-acc.g-acc.b)*180/Math.PI;
-    const isWarm = hue > -30 && hue < 90;
-    const font = isWarm ? "'Georgia', serif" : "'Helvetica Neue', Helvetica, sans-serif";
+
+    const fontFamily = font === "serif" ? "'Georgia', 'Cambria', serif"
+      : font === "mono" ? "'Courier New', monospace"
+      : "'Helvetica Neue', Helvetica, Arial, sans-serif";
+
     const muted = textHex + "99";
-    const a38 = accentHex + "38";
-    const a70 = accentHex + "70";
+    const a40 = accentHex + "66";
+    const a20 = accentHex + "33";
     const bodyText = isDark ? "#c8c0b0" : "#444444";
+
+    const sectionBorderBottom = divider === "underline" ? `1px solid ${a40}`
+      : divider === "thick" ? `2px solid ${accentHex}`
+      : "none";
+    const sectionBorderLeft = divider === "leftbar" ? `3px solid ${accentHex}` : "none";
+    const sectionPL = divider === "leftbar" ? "10px" : "0";
+
+    const skillBg     = skillShape === "filled" ? accentHex : skillShape !== "plain" ? a20 : "transparent";
+    const skillColor  = skillShape === "filled" ? "#fff" : accentHex;
+    const skillBorder = skillShape === "plain"  ? "none" : `1px solid ${a40}`;
+    const skillRadius = skillShape === "pill"   ? "20px" : "3px";
+
     return {
       id: "custom", name: "Custom", desc: "Matched from your image",
       preview: { bg: bgHex, accent: accentHex, text: textHex },
+      _opts: { font, nameCaps, nameItalic, nameCentered, divider, skillShape },
       styles: {
-        page: { background: bgHex, color: textHex, fontFamily: font, padding: "48px 56px", minHeight: "560mm" },
-        name: { fontSize: "30px", fontWeight: "700", color: accentHex, letterSpacing: "2px", textTransform: "uppercase", marginBottom: "4px" },
-        contact: { fontSize: "11px", color: muted, letterSpacing: "1px", marginBottom: "28px" },
-        sectionTitle: { fontSize: "10px", fontWeight: "700", color: accentHex, letterSpacing: "3px", textTransform: "uppercase", borderBottom: `1px solid ${a70}`, paddingBottom: "6px", marginBottom: "14px", marginTop: "28px" },
-        jobTitle: { fontSize: "14px", fontWeight: "700", color: textHex },
-        company: { fontSize: "12px", color: muted, fontStyle: "italic", marginBottom: "8px" },
-        bullet: { fontSize: "12px", color: bodyText, lineHeight: "1.7", marginBottom: "4px", paddingLeft: "14px", position: "relative" },
-        summary: { fontSize: "13px", color: bodyText, lineHeight: "1.8" },
-        skillTag: { background: a38, border: `1px solid ${a70}`, color: accentHex, fontSize: "10px", padding: "3px 10px", borderRadius: "3px", letterSpacing: "0.5px" },
+        page:         { background: bgHex, color: textHex, fontFamily, padding: "48px 56px", minHeight: "560mm" },
+        name:         { fontSize: "30px", fontWeight: "700", color: accentHex, letterSpacing: nameCaps ? "3px" : "0px", textTransform: nameCaps ? "uppercase" : "none", fontStyle: nameItalic ? "italic" : "normal", textAlign: nameCentered ? "center" : "left", marginBottom: "4px" },
+        contact:      { fontSize: "11px", color: muted, letterSpacing: "0.5px", marginBottom: "28px", textAlign: nameCentered ? "center" : "left" },
+        sectionTitle: { fontSize: "10px", fontWeight: "700", color: accentHex, textTransform: "uppercase", letterSpacing: "2px", borderBottom: sectionBorderBottom, borderLeft: sectionBorderLeft, paddingLeft: sectionPL, paddingBottom: divider !== "none" ? "5px" : "0", marginBottom: "12px", marginTop: "26px" },
+        jobTitle:     { fontSize: "14px", fontWeight: "700", color: textHex },
+        company:      { fontSize: "12px", color: muted, fontStyle: "italic", marginBottom: "6px" },
+        bullet:       { fontSize: "12px", color: bodyText, lineHeight: "1.7", marginBottom: "4px", paddingLeft: "14px", position: "relative" },
+        summary:      { fontSize: "12px", color: bodyText, lineHeight: "1.8" },
+        skillTag:     { background: skillBg, color: skillColor, border: skillBorder, fontSize: "10px", padding: "3px 10px", borderRadius: skillRadius, letterSpacing: "0.5px" },
       },
     };
   };
@@ -551,44 +574,73 @@ export default function App() {
                     </div>
                   ) : customTheme ? (
                     <div style={{ flex: 1 }} onClick={e => e.stopPropagation()}>
-                      <div style={{ fontWeight: "600", fontSize: "13px", marginBottom: "8px" }}>
-                        {selectedTheme.id === "custom" ? "✓ Custom theme active" : "Custom theme extracted"}
-                      </div>
-                      {/* Color fine-tune pickers */}
-                      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "8px" }}>
-                        {[
-                          { label: "Background", key: "bg" },
-                          { label: "Text", key: "text" },
-                          { label: "Accent", key: "accent" },
-                        ].map(({ label, key }) => (
+                      <div style={{ fontWeight: "600", fontSize: "13px", marginBottom: "10px" }}>✓ Custom theme — adjust to match your template</div>
+
+                      {/* Colors */}
+                      <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "10px" }}>
+                        {[{ label: "Background", key: "bg" }, { label: "Text", key: "text" }, { label: "Accent", key: "accent" }].map(({ label, key }) => (
                           <label key={key} style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
-                            <input
-                              type="color"
-                              value={customTheme.preview[key]}
+                            <input type="color" value={customTheme.preview[key]}
                               onChange={e => {
+                                const opts = customTheme._opts || {};
                                 const updated = buildThemeFromColors(
                                   key === "bg" ? e.target.value : customTheme.preview.bg,
                                   key === "text" ? e.target.value : customTheme.preview.text,
                                   key === "accent" ? e.target.value : customTheme.preview.accent,
+                                  opts
                                 );
-                                setCustomTheme(updated);
-                                setSelectedTheme(updated);
+                                setCustomTheme(updated); setSelectedTheme(updated);
                               }}
-                              style={{ width: "24px", height: "24px", border: "none", borderRadius: "4px", cursor: "pointer", padding: "1px" }}
+                              style={{ width: "22px", height: "22px", border: "none", borderRadius: "3px", cursor: "pointer", padding: "1px" }}
                             />
                             <span style={{ fontSize: "11px", color: "#555" }}>{label}</span>
                           </label>
                         ))}
                       </div>
-                      <button
-                        onClick={() => setSelectedTheme(customTheme)}
-                        style={{
-                          fontSize: "11px", padding: "3px 10px", borderRadius: "4px", cursor: "pointer",
-                          border: `1px solid ${selectedTheme.id === "custom" ? "#1a1a1a" : "#d0d0d0"}`,
-                          background: selectedTheme.id === "custom" ? "#1a1a1a" : "#fff",
-                          color: selectedTheme.id === "custom" ? "#fff" : "#555",
-                        }}
-                      >
+
+                      {/* Style controls */}
+                      {[
+                        { label: "Font", key: "font", options: [["sans","Sans-serif"],["serif","Serif"],["mono","Monospace"]] },
+                        { label: "Divider", key: "divider", options: [["underline","Underline"],["leftbar","Left bar"],["thick","Thick line"],["none","None"]] },
+                        { label: "Skills", key: "skillShape", options: [["box","Box"],["pill","Pill"],["filled","Filled"],["plain","Plain text"]] },
+                      ].map(({ label, key, options }) => (
+                        <div key={key} style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "7px" }}>
+                          <span style={{ fontSize: "11px", color: "#666", width: "52px", flexShrink: 0 }}>{label}</span>
+                          <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
+                            {options.map(([val, lbl]) => {
+                              const current = (customTheme._opts || {})[key] || options[0][0];
+                              const active = current === val;
+                              return (
+                                <button key={val} onClick={() => {
+                                  const opts = { ...(customTheme._opts || {}), [key]: val };
+                                  const updated = buildThemeFromColors(customTheme.preview.bg, customTheme.preview.text, customTheme.preview.accent, opts);
+                                  setCustomTheme(updated); setSelectedTheme(updated);
+                                }} style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "3px", cursor: "pointer", border: `1px solid ${active ? "#1a1a1a" : "#d0d0d0"}`, background: active ? "#1a1a1a" : "#fff", color: active ? "#fff" : "#555" }}>
+                                  {lbl}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Toggles */}
+                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "10px" }}>
+                        {[["nameCaps","ALL CAPS name"],["nameItalic","Italic name"],["nameCentered","Centered name"]].map(([key, lbl]) => {
+                          const active = !!(customTheme._opts || {})[key];
+                          return (
+                            <button key={key} onClick={() => {
+                              const opts = { ...(customTheme._opts || {}), [key]: !active };
+                              const updated = buildThemeFromColors(customTheme.preview.bg, customTheme.preview.text, customTheme.preview.accent, opts);
+                              setCustomTheme(updated); setSelectedTheme(updated);
+                            }} style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "3px", cursor: "pointer", border: `1px solid ${active ? "#1a1a1a" : "#d0d0d0"}`, background: active ? "#1a1a1a" : "#fff", color: active ? "#fff" : "#555" }}>
+                              {lbl}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <button onClick={() => setSelectedTheme(customTheme)} style={{ fontSize: "11px", padding: "4px 12px", borderRadius: "4px", cursor: "pointer", border: `1px solid ${selectedTheme.id === "custom" ? "#1a1a1a" : "#d0d0d0"}`, background: selectedTheme.id === "custom" ? "#1a1a1a" : "#fff", color: selectedTheme.id === "custom" ? "#fff" : "#555" }}>
                         {selectedTheme.id === "custom" ? "✓ Selected" : "Use this theme"}
                       </button>
                     </div>
