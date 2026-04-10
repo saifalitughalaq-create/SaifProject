@@ -470,64 +470,99 @@ export default function App() {
             </div>
 
             {/* Match Analysis Card */}
-            {(generated.matchScore > 0 || generated.covered?.length > 0 || generated.gaps?.length > 0) && (
-              <div style={{ background: "#fff", border: "1px solid #e0e0e0", borderRadius: "10px", padding: "20px 24px", marginBottom: "20px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "20px", marginBottom: "16px", flexWrap: "wrap" }}>
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{
-                      width: "72px", height: "72px", borderRadius: "50%",
-                      background: generated.matchScore >= 80 ? "#dcfce7" : generated.matchScore >= 60 ? "#fef9c3" : "#fee2e2",
-                      border: `3px solid ${generated.matchScore >= 80 ? "#16a34a" : generated.matchScore >= 60 ? "#ca8a04" : "#dc2626"}`,
-                      display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column",
-                    }}>
-                      <span style={{ fontSize: "18px", fontWeight: "700", color: generated.matchScore >= 80 ? "#16a34a" : generated.matchScore >= 60 ? "#ca8a04" : "#dc2626" }}>
-                        {generated.matchScore}%
-                      </span>
-                    </div>
-                    <div style={{ fontSize: "10px", color: "#888", marginTop: "4px", letterSpacing: "0.5px", textTransform: "uppercase" }}>JD Match</div>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px" }}>
-                      {generated.matchScore >= 80 ? "Strong match — ready to apply" :
-                       generated.matchScore >= 60 ? "Good match — minor gaps" :
-                       "Partial match — see gaps below"}
-                    </div>
-                    <div style={{ fontSize: "12px", color: "#666", lineHeight: "1.5" }}>
-                      Based on your actual experience only — no skills were added that you don't have.
-                    </div>
-                  </div>
-                </div>
+            {(generated.matchScore > 0 || generated.recommendation) && (() => {
+              const rec = generated.recommendation;
+              const isApply = rec === "APPLY";
+              const isCaution = rec === "APPLY_WITH_CAUTION";
+              const recColor = isApply ? "#16a34a" : isCaution ? "#ca8a04" : "#dc2626";
+              const recBg = isApply ? "#dcfce7" : isCaution ? "#fef9c3" : "#fee2e2";
+              const recBorder = isApply ? "#bbf7d0" : isCaution ? "#fde68a" : "#fecaca";
+              const recLabel = isApply ? "Apply with confidence" : isCaution ? "Apply with caution" : "Reconsider applying";
+              const recIcon = isApply ? "✓" : isCaution ? "!" : "✗";
+              const scoreColor = generated.matchScore >= 70 ? "#16a34a" : generated.matchScore >= 50 ? "#ca8a04" : "#dc2626";
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-                  {generated.covered?.length > 0 && (
+              return (
+                <div style={{ background: "#fff", border: "1px solid #e0e0e0", borderRadius: "10px", overflow: "hidden", marginBottom: "20px" }}>
+
+                  {/* Recommendation banner */}
+                  <div style={{ background: recBg, borderBottom: `1px solid ${recBorder}`, padding: "14px 20px", display: "flex", alignItems: "flex-start", gap: "12px" }}>
+                    <div style={{
+                      width: "28px", height: "28px", borderRadius: "50%", background: recColor,
+                      color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: "14px", fontWeight: "700", flexShrink: 0,
+                    }}>{recIcon}</div>
                     <div>
-                      <div style={{ fontSize: "11px", fontWeight: "700", color: "#16a34a", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>
-                        Covered ({generated.covered.length})
-                      </div>
-                      {generated.covered.map((item, i) => (
-                        <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "5px" }}>
-                          <span style={{ color: "#16a34a", fontSize: "12px", flexShrink: 0, marginTop: "1px" }}>✓</span>
-                          <span style={{ fontSize: "12px", color: "#333", lineHeight: "1.4" }}>{item}</span>
-                        </div>
-                      ))}
+                      <div style={{ fontWeight: "700", fontSize: "14px", color: recColor, marginBottom: "3px" }}>{recLabel}</div>
+                      {generated.recommendationReason && (
+                        <div style={{ fontSize: "12px", color: "#444", lineHeight: "1.6" }}>{generated.recommendationReason}</div>
+                      )}
                     </div>
-                  )}
-                  {generated.gaps?.length > 0 && (
-                    <div>
-                      <div style={{ fontSize: "11px", fontWeight: "700", color: "#dc2626", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>
-                        Gaps ({generated.gaps.length})
-                      </div>
-                      {generated.gaps.map((item, i) => (
-                        <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "5px" }}>
-                          <span style={{ color: "#dc2626", fontSize: "12px", flexShrink: 0, marginTop: "1px" }}>✗</span>
-                          <span style={{ fontSize: "12px", color: "#333", lineHeight: "1.4" }}>{item}</span>
+                  </div>
+
+                  {/* Score + breakdown */}
+                  <div style={{ padding: "16px 20px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "16px" }}>
+                      <div style={{ textAlign: "center", flexShrink: 0 }}>
+                        <div style={{
+                          width: "64px", height: "64px", borderRadius: "50%",
+                          border: `3px solid ${scoreColor}`,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}>
+                          <span style={{ fontSize: "17px", fontWeight: "700", color: scoreColor }}>{generated.matchScore}%</span>
                         </div>
-                      ))}
+                        <div style={{ fontSize: "10px", color: "#888", marginTop: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>JD Match</div>
+                      </div>
+                      <div style={{ fontSize: "12px", color: "#555", lineHeight: "1.6" }}>
+                        Resume rewritten to maximally cover what you genuinely have. No skills fabricated.
+                        {generated.bridgedGaps?.length > 0 && ` ${generated.bridgedGaps.length} gap(s) partially addressed with transferable experience.`}
+                      </div>
                     </div>
-                  )}
+
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "16px" }}>
+                      {generated.covered?.length > 0 && (
+                        <div>
+                          <div style={{ fontSize: "10px", fontWeight: "700", color: "#16a34a", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>
+                            Covered ({generated.covered.length})
+                          </div>
+                          {generated.covered.map((item, i) => (
+                            <div key={i} style={{ display: "flex", gap: "6px", marginBottom: "5px", alignItems: "flex-start" }}>
+                              <span style={{ color: "#16a34a", fontSize: "11px", flexShrink: 0, marginTop: "2px" }}>✓</span>
+                              <span style={{ fontSize: "12px", color: "#333", lineHeight: "1.4" }}>{item}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {generated.bridgedGaps?.length > 0 && (
+                        <div>
+                          <div style={{ fontSize: "10px", fontWeight: "700", color: "#ca8a04", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>
+                            Partially covered ({generated.bridgedGaps.length})
+                          </div>
+                          {generated.bridgedGaps.map((item, i) => (
+                            <div key={i} style={{ display: "flex", gap: "6px", marginBottom: "5px", alignItems: "flex-start" }}>
+                              <span style={{ color: "#ca8a04", fontSize: "11px", flexShrink: 0, marginTop: "2px" }}>~</span>
+                              <span style={{ fontSize: "12px", color: "#333", lineHeight: "1.4" }}>{item}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {generated.gaps?.length > 0 && (
+                        <div>
+                          <div style={{ fontSize: "10px", fontWeight: "700", color: "#dc2626", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>
+                            Gaps ({generated.gaps.length})
+                          </div>
+                          {generated.gaps.map((item, i) => (
+                            <div key={i} style={{ display: "flex", gap: "6px", marginBottom: "5px", alignItems: "flex-start" }}>
+                              <span style={{ color: "#dc2626", fontSize: "11px", flexShrink: 0, marginTop: "2px" }}>✗</span>
+                              <span style={{ fontSize: "12px", color: "#333", lineHeight: "1.4" }}>{item}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Inline theme switcher */}
             <div style={{ display: "flex", gap: "6px", marginBottom: "16px", flexWrap: "wrap" }}>

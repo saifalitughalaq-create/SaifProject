@@ -10,8 +10,11 @@ function parseOutput(raw) {
 
   const result = {
     matchScore: 0,
+    recommendation: "",   // APPLY | APPLY_WITH_CAUTION | RECONSIDER
+    recommendationReason: "",
     covered: [],
     gaps: [],
+    bridgedGaps: [],      // gaps that were partially addressed
     name: "",
     contact: "",
     summary: "",
@@ -23,30 +26,43 @@ function parseOutput(raw) {
   let currentEntry = null;
   let summaryLines = [];
   let inSummary = false;
+  let inReason = false;
 
   for (const line of lines) {
     if (line.startsWith("MATCH_SCORE:")) {
       result.matchScore = parseInt(line.slice(12).trim(), 10) || 0;
+      inSummary = false; inReason = false;
+    } else if (line.startsWith("RECOMMENDATION:")) {
+      result.recommendation = line.slice(15).trim().toUpperCase();
+      inSummary = false; inReason = false;
+    } else if (line.startsWith("REASON:")) {
+      result.recommendationReason = line.slice(7).trim();
+      inReason = true; inSummary = false;
     } else if (line.startsWith("COVERED:")) {
       result.covered = line.slice(8).split("|").map(s => s.trim()).filter(Boolean);
+      inReason = false;
     } else if (line.startsWith("GAPS:")) {
       result.gaps = line.slice(5).split("|").map(s => s.trim()).filter(Boolean);
+      inReason = false;
+    } else if (line.startsWith("BRIDGED:")) {
+      result.bridgedGaps = line.slice(8).split("|").map(s => s.trim()).filter(Boolean);
+      inReason = false;
     } else if (line.startsWith("NAME:")) {
       result.name = line.slice(5).trim();
-      inSummary = false;
+      inSummary = false; inReason = false;
     } else if (line.startsWith("CONTACT:")) {
       result.contact = line.slice(8).trim();
-      inSummary = false;
+      inSummary = false; inReason = false;
     } else if (line.startsWith("SUMMARY:")) {
       summaryLines = [line.slice(8).trim()];
-      inSummary = true;
+      inSummary = true; inReason = false;
     } else if (line.startsWith("SKILLS:")) {
       if (summaryLines.length) result.summary = summaryLines.join(" ");
-      inSummary = false;
+      inSummary = false; inReason = false;
       result.skills = line.slice(7).split(",").map(s => s.trim()).filter(Boolean);
     } else if (line.startsWith("JOB:")) {
       if (summaryLines.length && !result.summary) result.summary = summaryLines.join(" ");
-      inSummary = false;
+      inSummary = false; inReason = false;
       currentEntry = { title: "", company: "", bullets: [] };
       const parts = line.slice(4).trim().split("|");
       currentEntry.title = (parts[0] || "").trim();
@@ -54,17 +70,19 @@ function parseOutput(raw) {
       result.experience.push(currentEntry);
     } else if (line.startsWith("EDU:")) {
       if (summaryLines.length && !result.summary) result.summary = summaryLines.join(" ");
-      inSummary = false;
+      inSummary = false; inReason = false;
       currentEntry = { degree: "", school: "", bullets: [] };
       const parts = line.slice(4).trim().split("|");
       currentEntry.degree = (parts[0] || "").trim();
       currentEntry.school = parts.slice(1).join("|").trim();
       result.education.push(currentEntry);
     } else if (line.startsWith("BULLET:") && currentEntry) {
-      inSummary = false;
+      inSummary = false; inReason = false;
       currentEntry.bullets.push(line.slice(7).trim());
     } else if (inSummary && !line.match(/^[A-Z_]{3,}:/)) {
       summaryLines.push(line);
+    } else if (inReason && !line.match(/^[A-Z_]{3,}:/)) {
+      result.recommendationReason += " " + line;
     }
   }
 
@@ -81,69 +99,78 @@ export default async function handler(req, res) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "API key not configured" });
 
-  const prompt = `You are rewriting this person's resume from scratch to target a specific job. Every single word must be chosen to match the job description. The original resume is only a source of facts — dates, companies, job titles, metrics, and real experiences. The actual writing must be completely new.
+  const prompt = `You are a professional resume writer and career advisor. Rewrite this resume from scratch to maximally target the job description — using every transferable skill and experience the person genuinely has. Also provide an honest job fit assessment.
 
-DO NOT copy any sentence from the original resume. DO NOT keep original phrasing. REWRITE EVERYTHING.
-DO NOT add skills, tools, software, or metrics that are not in the original resume.
-START your output with: MATCH_SCORE:
+TRUTHFULNESS RULES (never break these):
+- NEVER invent skills, tools, software, or metrics not in the original resume
+- NEVER add SAP, ARIBA, Excel, or any tool not mentioned in the resume
+- NEVER fabricate metrics — only use numbers from the original resume
+- Original resume = source of facts only. All writing must be completely new.
 
----
-STEP 1: Read the job description. List every responsibility and requirement in your head.
+REWRITING APPROACH:
+1. Read the JD and identify every requirement (required vs preferred)
+2. Read the resume and identify everything the person genuinely has
+3. For each JD requirement:
+   - COVERED: person clearly has this from their resume
+   - BRIDGED: person has related/transferable experience that partially covers this
+   - GAP: person genuinely does not have this at all
+4. Rewrite the resume to maximally cover COVERED + BRIDGED requirements
+5. For BRIDGED items: frame the closest real experience in JD language as strongly as possible
+6. For GAP items: do not address in resume — list them honestly in GAPS
 
-STEP 2: Read the resume. Note:
-- Actual job titles, companies, dates
-- Real metrics and numbers (keep these exactly)
-- What the person actually did (the facts, not the words)
-- Skills and tools actually mentioned
+WRITING RULES:
+- Every bullet completely rewritten — no original phrasing kept at all
+- Bullets: strong JD action verb + JD keyword phrase + real metric from resume
+- Summary: 3 sentences connecting real background to this specific role using JD vocabulary
+- Skills: only what exists in the resume, using JD terminology where equivalent
+- 5-6 bullets per job covering as many JD requirements as possible
 
-STEP 3: For each JD requirement, decide: does this person's real experience cover it? (COVERED) or not? (GAP)
+RECOMMENDATION LOGIC:
+- APPLY: 70%+ covered/bridged, no missing core requirements
+- APPLY_WITH_CAUTION: 50-69% covered/bridged, or missing 1-2 preferred (not required) skills
+- RECONSIDER: below 50% covered/bridged, or missing core required qualifications
 
-STEP 4: Write the new resume using JD language throughout. Rules:
-- Summary: 3 sentences written specifically for THIS job, using JD keywords to describe their real background
-- Skills: only what exists in the resume, but use JD terminology where equivalent (e.g. "financial close" if they have it)
-- Every bullet: START with an action verb from the JD, use JD keyword phrases, keep original metrics
-- Bullets must sound like they were written by someone who has been doing exactly THIS job
-- Each job should have 5-6 bullets that collectively cover as many JD requirements as possible
-
-EXAMPLE of weak vs strong rewriting:
+EXAMPLE — weak vs strong bullet:
 WEAK: "Processed financial transactions with 98% accuracy"
-STRONG: "Managed high-volume intercompany accounting and COGS reconciliation supporting month-end and quarter-end financial close cycles, maintaining 98% transaction accuracy"
-(Same fact, completely different — now matches JD language exactly)
+STRONG: "Owned high-volume intercompany accounting and COGS reconciliation cycles, driving month-end and quarter-end financial close with 98% transaction accuracy across all accounts"
 
 ---
-OUTPUT FORMAT (no markdown, no extra text):
-MATCH_SCORE: [0-100]
-COVERED: [jd requirement | jd requirement | ...]
-GAPS: [missing skill or experience | ...]
-NAME: [full name]
-CONTACT: [contact info]
-SUMMARY: [3 sentences — completely rewritten using JD vocabulary]
-SKILLS: [only real skills from resume, JD terminology preferred, comma-separated]
+OUTPUT FORMAT — exact, no markdown, no extra text:
+MATCH_SCORE: [0-100 integer]
+RECOMMENDATION: [APPLY or APPLY_WITH_CAUTION or RECONSIDER]
+REASON: [2-3 sentences: what makes them a good fit, what the key gaps are, and whether those gaps are dealbreakers]
+COVERED: [requirement | requirement | ...]
+BRIDGED: [requirement they partially cover | ...]
+GAPS: [genuine missing requirement | ...]
+NAME: [full name from resume]
+CONTACT: [contact info from resume]
+SUMMARY: [3 sentences — rewritten using JD vocabulary, connecting real background to this role]
+SKILLS: [only skills from original resume, JD terminology preferred, comma-separated]
 JOB: [title] | [company] | [location] | [dates]
-BULLET: [completely new bullet — JD action verb + JD keyword + real metric]
-BULLET: [completely new bullet — JD action verb + JD keyword + real metric]
-BULLET: [completely new bullet — JD action verb + JD keyword + real metric]
-BULLET: [completely new bullet — JD action verb + JD keyword + real metric]
-BULLET: [completely new bullet — JD action verb + JD keyword + real metric]
-BULLET: [completely new bullet — JD action verb + JD keyword + real metric]
-(repeat JOB + BULLET blocks for every position)
+BULLET: [new bullet — JD verb + JD phrase + real metric]
+BULLET: [new bullet — JD verb + JD phrase + real metric]
+BULLET: [new bullet — JD verb + JD phrase + real metric]
+BULLET: [new bullet — JD verb + JD phrase + real metric]
+BULLET: [new bullet — JD verb + JD phrase + real metric]
+BULLET: [new bullet — JD verb + JD phrase + real metric]
+(repeat JOB + BULLET for every position in the resume)
 EDU: [degree] | [school] | [location] | [year]
-BULLET: [achievement]
-BULLET: [achievement]
+BULLET: [real achievement relevant to role]
+BULLET: [real achievement relevant to role]
 
 ---
-RESUME (source of facts only):
+RESUME (facts only):
 ${resumeText}
 
 ---
-JOB DESCRIPTION (target language and requirements):
+JOB DESCRIPTION:
 ${jobDescription}
 
 ---
-BEGIN (first line must be MATCH_SCORE:):`;
+BEGIN OUTPUT (first line: MATCH_SCORE:):`;
 
   const MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "llama3-8b-8192"];
-  const systemPrompt = "You are a professional resume writer. Your job is to completely rewrite resumes from scratch using the target job description's exact language. Never copy original wording. Never fabricate skills, tools, or metrics not in the original resume. Output plain text only — no markdown, no preamble. First line of output must be MATCH_SCORE:";
+  const systemPrompt = "You are a professional resume writer and career advisor. Completely rewrite resumes from scratch in the exact plain-text format given. Never fabricate skills, tools, or metrics. Output plain text only — no markdown, no preamble. First line must be MATCH_SCORE:";
 
   let data = null;
   let lastError = null;
