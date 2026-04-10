@@ -38,11 +38,20 @@ Respond with ONLY valid JSON:
       messages: [
         {
           role: "system",
-          content: "You are a JSON API. You only output valid JSON. Never output text, explanations, or markdown. Your entire response must be a single JSON object starting with { and ending with }."
+          content: `You are an expert resume writer and a JSON API. Your only output is a valid JSON object — no markdown, no explanation, no text outside the JSON.
+
+Your job is to TRANSFORM a resume to match a job description:
+- Extract keywords, skills, tools, and responsibilities from the job description
+- Rewrite EVERY bullet point using those exact keywords — never copy the original wording
+- Rewrite the summary to directly target the specific role
+- List only skills that appear in or are relevant to the job description
+- Quantify results (numbers, %, $) wherever the original hints at measurable work
+- If the original says "helped with invoices" and the job says "AP/AR processing" — write "Processed AP/AR transactions..."
+- Make the candidate look like a perfect match for this specific job`
         },
         { role: "user", content: prompt }
       ],
-      temperature: 0.3,
+      temperature: 0.4,
       max_tokens: 4096,
     }),
   });
