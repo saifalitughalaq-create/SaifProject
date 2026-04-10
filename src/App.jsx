@@ -109,8 +109,8 @@ const THEMES = [
   },
   {
     id: "word-ion",
-    name: "Word: Ion",
-    desc: "Word Ion — blue accents, clean",
+    name: "Ion",
+    desc: "Blue accents, clean sans",
     preview: { bg: "#ffffff", accent: "#2e74b5", text: "#333333" },
     styles: {
       page: { background: "#ffffff", color: "#333333", fontFamily: "'Calibri', 'Segoe UI', Arial, sans-serif", padding: "48px 56px", minHeight: "560mm" },
@@ -126,8 +126,8 @@ const THEMES = [
   },
   {
     id: "word-crisp",
-    name: "Word: Crisp",
-    desc: "Word Crisp — orange, airy sans",
+    name: "Crisp",
+    desc: "Orange, airy light sans",
     preview: { bg: "#ffffff", accent: "#e07b00", text: "#1a1a1a" },
     styles: {
       page: { background: "#ffffff", color: "#1a1a1a", fontFamily: "'Calibri Light', 'Segoe UI Light', Arial, sans-serif", padding: "56px 64px", minHeight: "560mm" },
@@ -143,8 +143,8 @@ const THEMES = [
   },
   {
     id: "word-polished",
-    name: "Word: Polished",
-    desc: "Word Polished — navy, serif, traditional",
+    name: "Polished",
+    desc: "Navy, serif, traditional",
     preview: { bg: "#ffffff", accent: "#1f3864", text: "#262626" },
     styles: {
       page: { background: "#ffffff", color: "#262626", fontFamily: "'Georgia', 'Cambria', serif", padding: "48px 56px", minHeight: "560mm" },
@@ -160,8 +160,8 @@ const THEMES = [
   },
   {
     id: "word-swiss",
-    name: "Word: Swiss",
-    desc: "Word Swiss — red, bold, Helvetica",
+    name: "Swiss",
+    desc: "Red, bold Helvetica",
     preview: { bg: "#ffffff", accent: "#c00000", text: "#1a1a1a" },
     styles: {
       page: { background: "#ffffff", color: "#1a1a1a", fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", padding: "48px 56px", minHeight: "560mm" },
@@ -177,8 +177,8 @@ const THEMES = [
   },
   {
     id: "word-urban",
-    name: "Word: Urban",
-    desc: "Word Urban — charcoal header block",
+    name: "Urban",
+    desc: "Charcoal header block",
     preview: { bg: "#ffffff", accent: "#3b3b3b", text: "#262626" },
     styles: {
       page: { background: "#ffffff", color: "#262626", fontFamily: "'Calibri', 'Segoe UI', Arial, sans-serif", padding: "0", minHeight: "560mm" },
@@ -194,8 +194,8 @@ const THEMES = [
   },
   {
     id: "word-spearmint",
-    name: "Word: Spearmint",
-    desc: "Word Spearmint — fresh teal, modern",
+    name: "Spearmint",
+    desc: "Fresh teal, modern",
     preview: { bg: "#ffffff", accent: "#2e9d8a", text: "#262626" },
     styles: {
       page: { background: "#ffffff", color: "#262626", fontFamily: "'Calibri', 'Segoe UI', Arial, sans-serif", padding: "48px 56px", minHeight: "560mm" },
@@ -211,8 +211,8 @@ const THEMES = [
   },
   {
     id: "word-bold",
-    name: "Word: Bold",
-    desc: "Word Bold — oversized name, minimal",
+    name: "Bold",
+    desc: "Oversized name, minimal",
     preview: { bg: "#ffffff", accent: "#111111", text: "#262626" },
     styles: {
       page: { background: "#ffffff", color: "#262626", fontFamily: "'Arial Black', 'Arial', sans-serif", padding: "48px 56px", minHeight: "560mm" },
@@ -228,8 +228,8 @@ const THEMES = [
   },
   {
     id: "word-modern-chrono",
-    name: "Word: Modern Chronological",
-    desc: "Word Modern — teal highlights, classic layout",
+    name: "Modern Chronological",
+    desc: "Teal highlights, classic layout",
     preview: { bg: "#ffffff", accent: "#1f6e8c", text: "#262626" },
     styles: {
       page: { background: "#ffffff", color: "#262626", fontFamily: "'Cambria', Georgia, serif", padding: "48px 56px", minHeight: "560mm" },
@@ -333,7 +333,8 @@ const THEMES = [
 ];
 
 const STEPS = ["Resume", "Job Description", "Theme", "Generate"];
-const FREE_LIMIT = 10;
+const GUEST_LIMIT = 5;   // generations without sign-in
+const AUTH_LIMIT  = 5;   // additional generations after sign-in
 const LS_KEY = "rt_gens";
 
 const getLocalCount = () => parseInt(localStorage.getItem(LS_KEY) || "0", 10);
@@ -367,7 +368,16 @@ const ResumePreview = ({ data, theme }) => {
   return (
     <div style={s.page} id="resume-output">
       <div style={s.name}>{data.name}</div>
-      <div style={s.contact}>{data.contact}</div>
+      <div style={s.contact}>
+        {data.contact.split(/\s*[|,]\s*/).map((item, i, arr) => (
+          <span key={i}>
+            {item.trim()}
+            {i < arr.length - 1 && (
+              <span style={{ margin: "0 10px", opacity: 0.4 }}>·</span>
+            )}
+          </span>
+        ))}
+      </div>
 
       <div style={s.sectionTitle}>Professional Summary</div>
       <div style={s.summary}>{data.summary}</div>
@@ -649,6 +659,58 @@ export default function App() {
     };
   };
 
+  const extractThemeFromImage = (file) => new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const scale = Math.min(1, 300 / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width  = Math.round(img.width  * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const { data: px } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      const toHex = (r, g, b) =>
+        "#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join("");
+      const lum = (r, g, b) => (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      const sat = (r, g, b) => {
+        const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+        return mx === 0 ? 0 : (mx - mn) / mx;
+      };
+
+      // Build a frequency map (quantise to 8-bit buckets for grouping)
+      const freq = new Map();
+      for (let i = 0; i < px.length; i += 4) {
+        if (px[i + 3] < 200) continue; // skip transparent
+        const r = Math.round(px[i]   / 8) * 8;
+        const g = Math.round(px[i+1] / 8) * 8;
+        const b = Math.round(px[i+2] / 8) * 8;
+        const k = `${r},${g},${b}`;
+        freq.set(k, (freq.get(k) || 0) + 1);
+      }
+
+      const colors = [...freq.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 80)
+        .map(([k]) => {
+          const [r, g, b] = k.split(",").map(Number);
+          return { h: toHex(r, g, b), r, g, b, lum: lum(r, g, b), sat: sat(r, g, b) };
+        });
+
+      const bg     = colors.find(c => c.lum > 0.88) || { h: "#ffffff" };
+      const textC  = colors.find(c => c.lum < 0.22)  || { h: "#1a1a1a" };
+      const accent = colors
+        .filter(c => c.sat > 0.18 && c.lum > 0.08 && c.lum < 0.82)
+        .sort((a, b) => b.sat - a.sat)[0] || { h: "#2563eb" };
+
+      URL.revokeObjectURL(url);
+      resolve(buildThemeFromColors(bg.h, textC.h, accent.h, { font: "sans" }));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Cannot load image")); };
+    img.src = url;
+  });
+
   const extractThemeFromDocx = async (file) => {
     const arrayBuffer = await file.arrayBuffer();
 
@@ -719,19 +781,21 @@ export default function App() {
   const handleThemeUpload = async (file) => {
     if (!file) return;
     const ext = file.name.split(".").pop().toLowerCase();
-    if (ext !== "docx") {
-      setCustomThemeError("Please upload a .docx file.");
+    const isDocx  = ext === "docx";
+    const isImage = ["png", "jpg", "jpeg", "webp"].includes(ext);
+    if (!isDocx && !isImage) {
+      setCustomThemeError("Upload a .docx resume or an image (.png / .jpg) of your template.");
       return;
     }
     setCustomThemeLoading(true);
     setCustomThemeError(null);
     setCustomThemePreview(null);
     try {
-      const theme = await extractThemeFromDocx(file);
+      const theme = isDocx ? await extractThemeFromDocx(file) : await extractThemeFromImage(file);
       setCustomTheme(theme);
       setSelectedTheme(theme);
-    } catch (err) {
-      setCustomThemeError("Could not read the file. Make sure it's a valid .docx resume.");
+    } catch {
+      setCustomThemeError("Could not read the file. Try a different image or .docx.");
     }
     setCustomThemeLoading(false);
   };
@@ -739,7 +803,8 @@ export default function App() {
   const handleGenerate = async () => {
     // Check generation limit
     const currentCount = user ? await getFirestoreCount(user.uid) : getLocalCount();
-    if (currentCount >= FREE_LIMIT) { setShowPaywall(true); return; }
+    const limit = user ? AUTH_LIMIT : GUEST_LIMIT;
+    if (currentCount >= limit) { setShowPaywall(true); return; }
 
     setLoading(true);
     setError(null);
@@ -824,9 +889,11 @@ export default function App() {
           <div style={{ background: "#fff", borderRadius: "14px", padding: "36px", maxWidth: "420px", width: "100%", textAlign: "center" }}
             onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: "36px", marginBottom: "16px" }}>⚡</div>
-            <h2 style={{ fontSize: "20px", fontWeight: "700", marginBottom: "8px" }}>You've used {FREE_LIMIT} free generations</h2>
+            <h2 style={{ fontSize: "20px", fontWeight: "700", marginBottom: "8px" }}>
+              {user ? `You've used all ${AUTH_LIMIT} signed-in generations` : `You've used all ${GUEST_LIMIT} guest generations`}
+            </h2>
             <p style={{ color: "#666", fontSize: "13px", lineHeight: "1.6", marginBottom: "24px" }}>
-              {user ? "Upgrade to Pro for unlimited tailored resumes." : "Sign in with Google to continue free, or upgrade for unlimited access."}
+              {user ? "Upgrade to Pro for unlimited tailored resumes." : `Sign in with Google for ${AUTH_LIMIT} more free generations, or upgrade for unlimited.`}
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               {!user && isFirebaseReady && (
@@ -851,8 +918,8 @@ export default function App() {
       <div style={{ borderBottom: "1px solid #e4e4e4", background: "#fff", padding: "0 32px" }}>
         <div style={{ maxWidth: "760px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: "56px" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-            <span style={{ fontWeight: "700", fontSize: "16px", letterSpacing: "-0.3px" }}>Resume Tailor</span>
-            <span style={{ fontSize: "12px", color: "#888", letterSpacing: "0.2px" }}>AI-powered</span>
+            <span style={{ fontWeight: "800", fontSize: "17px", letterSpacing: "-0.5px" }}>ResumeJD</span>
+            <span style={{ fontSize: "11px", color: "#999", letterSpacing: "0.1px" }}>AI resume tailored to your job description</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             {step > 0 && step < 4 && (
@@ -875,11 +942,14 @@ export default function App() {
               </div>
             )}
             {/* Gen counter */}
-            {!authLoading && (
-              <span style={{ fontSize: "11px", color: genCount >= FREE_LIMIT ? "#dc2626" : "#888", background: "#f4f4f4", padding: "3px 8px", borderRadius: "20px" }}>
-                {genCount}/{FREE_LIMIT} free
-              </span>
-            )}
+            {!authLoading && (() => {
+              const limit = user ? AUTH_LIMIT : GUEST_LIMIT;
+              return (
+                <span style={{ fontSize: "11px", color: genCount >= limit ? "#dc2626" : "#888", background: "#f4f4f4", padding: "3px 8px", borderRadius: "20px" }}>
+                  {genCount}/{limit} free
+                </span>
+              );
+            })()}
             {/* Auth */}
             {isFirebaseReady && !authLoading && (
               user ? (
@@ -958,7 +1028,7 @@ export default function App() {
         {step === 2 && (
           <div className="fade-in">
             <h1 style={{ fontSize: "22px", fontWeight: "700", marginBottom: "6px" }}>Choose a Theme</h1>
-            <p style={{ color: "#666", fontSize: "14px", marginBottom: "24px" }}>Pick a preset style or upload any resume image to match its exact design.</p>
+            <p style={{ color: "#666", fontSize: "14px", marginBottom: "24px" }}>Pick a preset, or upload any resume (.docx or screenshot) to replicate its exact color scheme and style.</p>
 
             {/* Custom theme upload */}
             <div style={{ marginBottom: "24px" }}>
@@ -1058,8 +1128,8 @@ export default function App() {
                     </div>
                   ) : (
                     <div>
-                      <div style={{ fontWeight: "600", fontSize: "13px", marginBottom: "3px" }}>Upload a resume template</div>
-                      <div style={{ fontSize: "11px", color: "#888" }}>.docx only · extracts fonts and colors automatically</div>
+                      <div style={{ fontWeight: "600", fontSize: "13px", marginBottom: "3px" }}>Upload any resume to copy its style</div>
+                      <div style={{ fontSize: "11px", color: "#888" }}>.docx · .png · .jpg — extracts colors and fonts automatically</div>
                     </div>
                   )}
                   {customThemeError && (
@@ -1070,7 +1140,7 @@ export default function App() {
               <input
                 ref={themeFileRef}
                 type="file"
-                accept=".docx"
+                accept=".docx,.png,.jpg,.jpeg,.webp"
                 style={{ display: "none" }}
                 onChange={(e) => handleThemeUpload(e.target.files[0])}
               />
