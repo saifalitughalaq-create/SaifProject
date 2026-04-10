@@ -1,3 +1,5 @@
+export const maxDuration = 60;
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -88,5 +90,5 @@ Your job is to TRANSFORM a resume to match a job description:
     } catch {}
   }
 
-  return res.status(500).json({ error: `Model returned: ${text.slice(0, 300)}` });
+  return res.status(500).json({ error: `Parse failed (${text.length} chars). Start: ${text.slice(0, 200)} ... End: ${text.slice(-100)}` });
 }
