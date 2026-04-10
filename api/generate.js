@@ -62,6 +62,7 @@ Rules:
       messages: [{ role: "user", content: prompt }],
       temperature: 0.4,
       max_tokens: 2048,
+      response_format: { type: "json_object" },
     }),
   });
 
@@ -74,10 +75,16 @@ Rules:
 
   const data = await groqRes.json();
   const text = data.choices?.[0]?.message?.content || "";
-  const clean = text.replace(/```json|```/g, "").trim();
+
+  // Strip markdown fences if present, then extract first JSON object
+  const stripped = text.replace(/```json|```/g, "").trim();
+  const match = stripped.match(/\{[\s\S]*\}/);
+  if (!match) {
+    return res.status(500).json({ error: "No JSON found in AI response" });
+  }
 
   try {
-    const result = JSON.parse(clean);
+    const result = JSON.parse(match[0]);
     return res.status(200).json(result);
   } catch {
     return res.status(500).json({ error: "Failed to parse AI response" });
