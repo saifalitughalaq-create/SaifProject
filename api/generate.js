@@ -58,7 +58,7 @@ Rules:
       "Authorization": `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "llama-3.3-70b-versatile",
+      model: "mixtral-8x7b-32768",
       messages: [
         { role: "system", content: "You are an expert resume writer. You always respond with valid JSON only — no markdown, no explanation, no extra text. Just the raw JSON object." },
         { role: "user", content: prompt }
@@ -82,7 +82,7 @@ Rules:
   const stripped = text.replace(/```json|```/g, "").trim();
   const match = stripped.match(/\{[\s\S]*\}/);
   if (!match) {
-    return res.status(500).json({ error: "No JSON found in AI response" });
+    return res.status(500).json({ error: `No JSON found. Model said: ${stripped.slice(0, 200)}` });
   }
 
   try {
