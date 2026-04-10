@@ -312,11 +312,38 @@ export default function App() {
     setCustomThemeLoading(true);
     setCustomThemeError(null);
     setCustomThemePreview(URL.createObjectURL(file));
+
+    // Try Gemini vision API first (full analysis: fonts, layout, dividers, etc.)
+    try {
+      const reader = new FileReader();
+      const base64 = await new Promise((resolve, reject) => {
+        reader.onload = e => resolve(e.target.result.split(",")[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const res = await fetch("/api/analyze-theme", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageBase64: base64, mimeType: file.type }),
+      });
+
+      if (res.ok) {
+        const theme = await res.json();
+        setCustomTheme(theme);
+        setSelectedTheme(theme);
+        setCustomThemeLoading(false);
+        return;
+      }
+    } catch {}
+
+    // Fallback: Canvas color extraction (colors only)
     try {
       const theme = await extractThemeFromImage(file);
       setCustomTheme(theme);
       setSelectedTheme(theme);
-    } catch (err) {
+      setCustomThemeError("Colors matched. For full font/layout matching, add GEMINI_API_KEY to Vercel.");
+    } catch {
       setCustomThemeError("Could not read the image. Try a clearer screenshot.");
     }
     setCustomThemeLoading(false);
