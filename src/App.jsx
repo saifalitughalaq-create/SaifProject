@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import mammoth from "mammoth";
 
 const THEMES = [
   {
@@ -185,11 +186,22 @@ export default function App() {
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef();
 
-  const handleFile = (file) => {
+  const handleFile = async (file) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => setResumeText(e.target.result);
-    reader.readAsText(file);
+    const ext = file.name.split(".").pop().toLowerCase();
+
+    if (ext === "docx") {
+      const arrayBuffer = await file.arrayBuffer();
+      const result = await mammoth.extractRawText({ arrayBuffer });
+      setResumeText(result.value);
+    } else if (ext === "pdf") {
+      setResumeText("");
+      setError("PDF upload is not supported. Please copy-paste your resume text into the box below.");
+    } else {
+      const reader = new FileReader();
+      reader.onload = (e) => setResumeText(e.target.result);
+      reader.readAsText(file);
+    }
   };
 
   const handleDrop = useCallback((e) => {
