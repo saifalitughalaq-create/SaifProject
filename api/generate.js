@@ -105,29 +105,44 @@ ${jobDescription}
 ---
 BEGIN OUTPUT (start with NAME:):`;
 
-  const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-    body: JSON.stringify({
-      model: "llama-3.3-70b-versatile",
-      messages: [
-        {
-          role: "system",
-          content: "You are a resume rewriter. Your only job is to rewrite the resume in the exact plain-text format the user provides. Never analyze, score, or review. Never add commentary, preamble, or markdown. Your output must start with NAME: and contain only the formatted resume lines."
-        },
-        { role: "user", content: prompt }
-      ],
-      temperature: 0.3,
-      max_tokens: 8192,
-    }),
-  });
+  const MODELS = ["llama-3.3-70b-versatile", "llama-3.1-70b-versatile", "llama-3.1-8b-instant"];
+  const systemPrompt = "You are a resume rewriter. Your only job is to rewrite the resume in the exact plain-text format the user provides. Never analyze, score, or review. Never add commentary, preamble, or markdown. Your output must start with NAME: and contain only the formatted resume lines.";
 
-  if (!groqRes.ok) {
+  let data = null;
+  let lastError = null;
+
+  for (const model of MODELS) {
+    const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.3,
+        max_tokens: 4096,
+      }),
+    });
+
+    if (groqRes.ok) {
+      data = await groqRes.json();
+      break;
+    }
+
     const err = await groqRes.json().catch(() => ({}));
-    return res.status(groqRes.status).json({ error: err?.error?.message || "Groq API error" });
+    lastError = err?.error?.message || `Model ${model} failed`;
+
+    // Only continue to next model on rate limit (429)
+    if (groqRes.status !== 429) {
+      return res.status(groqRes.status).json({ error: lastError });
+    }
   }
 
-  const data = await groqRes.json();
+  if (!data) {
+    return res.status(429).json({ error: "All models are rate limited. Please try again in a few minutes." });
+  }
   const text = (data.choices?.[0]?.message?.content || "").trim();
 
   if (!text) {
