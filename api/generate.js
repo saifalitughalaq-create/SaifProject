@@ -58,9 +58,9 @@ Rules:
       "Authorization": `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "mixtral-8x7b-32768",
+      model: "llama3-70b-8192",
       messages: [
-        { role: "system", content: "You are an expert resume writer. You always respond with valid JSON only — no markdown, no explanation, no extra text. Just the raw JSON object." },
+        { role: "system", content: "You are a resume writer. Output ONLY a valid JSON object. No explanation, no markdown, no code fences. Start your response with { and end with }." },
         { role: "user", content: prompt }
       ],
       temperature: 0.4,
