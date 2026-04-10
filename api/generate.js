@@ -26,7 +26,7 @@ ${resumeText}
 JOB:
 ${jobDescription}
 
-Rules: tailor summary to this role, rewrite bullets with job keywords, quantify where possible, 10 skills max, 5 bullets per role, no em dashes.
+Rules: tailor summary to this role (3 sentences), rewrite every bullet using job keywords, quantify achievements with numbers/%, 14 skills, 6-7 bullets per role (more for recent roles), add 2-3 bullets for education, no em dashes. Generate enough content to fill a full 2-page resume.
 
 Respond with ONLY valid JSON:
 {"name":"","contact":"","summary":"","skills":[],"experience":[{"title":"","company":"","bullets":[]}],"education":[{"degree":"","school":"","bullets":[]}]}`;

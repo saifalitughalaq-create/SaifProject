@@ -8,7 +8,7 @@ const THEMES = [
     desc: "Dark navy, gold accents",
     preview: { bg: "#0f1923", accent: "#c9a84c", text: "#e8e0d0" },
     styles: {
-      page: { background: "#0f1923", color: "#e8e0d0", fontFamily: "'Georgia', serif", padding: "48px 56px", minHeight: "100%" },
+      page: { background: "#0f1923", color: "#e8e0d0", fontFamily: "'Georgia', serif", padding: "48px 56px", minHeight: "560mm" },
       name: { fontSize: "32px", fontWeight: "700", color: "#c9a84c", letterSpacing: "3px", textTransform: "uppercase", marginBottom: "4px" },
       contact: { fontSize: "11px", color: "#9a8f7e", letterSpacing: "1.5px", marginBottom: "32px", textTransform: "uppercase" },
       sectionTitle: { fontSize: "10px", fontWeight: "700", color: "#c9a84c", letterSpacing: "3px", textTransform: "uppercase", borderBottom: "1px solid #c9a84c33", paddingBottom: "6px", marginBottom: "14px", marginTop: "28px" },
@@ -25,7 +25,7 @@ const THEMES = [
     desc: "Stark white, pure typography",
     preview: { bg: "#ffffff", accent: "#111111", text: "#333333" },
     styles: {
-      page: { background: "#ffffff", color: "#1a1a1a", fontFamily: "'Helvetica Neue', Helvetica, sans-serif", padding: "48px 56px", minHeight: "100%" },
+      page: { background: "#ffffff", color: "#1a1a1a", fontFamily: "'Helvetica Neue', Helvetica, sans-serif", padding: "48px 56px", minHeight: "560mm" },
       name: { fontSize: "28px", fontWeight: "300", color: "#111111", letterSpacing: "6px", textTransform: "uppercase", marginBottom: "4px" },
       contact: { fontSize: "11px", color: "#888888", letterSpacing: "1px", marginBottom: "36px" },
       sectionTitle: { fontSize: "9px", fontWeight: "700", color: "#111111", letterSpacing: "4px", textTransform: "uppercase", borderBottom: "0.5px solid #111111", paddingBottom: "6px", marginBottom: "16px", marginTop: "28px" },
@@ -42,7 +42,7 @@ const THEMES = [
     desc: "Classic blue, structured",
     preview: { bg: "#f5f7fb", accent: "#1e4d8c", text: "#2d2d2d" },
     styles: {
-      page: { background: "#f5f7fb", color: "#2d2d2d", fontFamily: "'Cambria', Georgia, serif", padding: "48px 56px", minHeight: "100%" },
+      page: { background: "#f5f7fb", color: "#2d2d2d", fontFamily: "'Cambria', Georgia, serif", padding: "48px 56px", minHeight: "560mm" },
       name: { fontSize: "30px", fontWeight: "700", color: "#1e4d8c", marginBottom: "4px" },
       contact: { fontSize: "11px", color: "#666666", marginBottom: "28px", borderBottom: "2px solid #1e4d8c", paddingBottom: "16px" },
       sectionTitle: { fontSize: "12px", fontWeight: "700", color: "#1e4d8c", textTransform: "uppercase", letterSpacing: "1.5px", borderLeft: "3px solid #1e4d8c", paddingLeft: "10px", marginBottom: "14px", marginTop: "24px" },
@@ -59,7 +59,7 @@ const THEMES = [
     desc: "Warm slate, modern",
     preview: { bg: "#faf9f7", accent: "#d4614a", text: "#2c2825" },
     styles: {
-      page: { background: "#faf9f7", color: "#2c2825", fontFamily: "'Palatino Linotype', Palatino, serif", padding: "48px 56px", minHeight: "100%" },
+      page: { background: "#faf9f7", color: "#2c2825", fontFamily: "'Palatino Linotype', Palatino, serif", padding: "48px 56px", minHeight: "560mm" },
       name: { fontSize: "34px", fontWeight: "700", color: "#2c2825", marginBottom: "2px", letterSpacing: "-0.5px" },
       contact: { fontSize: "11px", color: "#9a8e85", marginBottom: "32px" },
       sectionTitle: { fontSize: "10px", fontWeight: "700", color: "#d4614a", letterSpacing: "3px", textTransform: "uppercase", marginBottom: "14px", marginTop: "28px" },
@@ -76,7 +76,7 @@ const THEMES = [
     desc: "Charcoal, cyan accents",
     preview: { bg: "#1a1d23", accent: "#00d4aa", text: "#e0e6f0" },
     styles: {
-      page: { background: "#1a1d23", color: "#e0e6f0", fontFamily: "'Courier New', monospace", padding: "48px 56px", minHeight: "100%" },
+      page: { background: "#1a1d23", color: "#e0e6f0", fontFamily: "'Courier New', monospace", padding: "48px 56px", minHeight: "560mm" },
       name: { fontSize: "26px", fontWeight: "700", color: "#00d4aa", letterSpacing: "4px", textTransform: "uppercase", marginBottom: "4px" },
       contact: { fontSize: "11px", color: "#6b7a8d", letterSpacing: "1px", marginBottom: "32px" },
       sectionTitle: { fontSize: "10px", fontWeight: "700", color: "#00d4aa", letterSpacing: "3px", textTransform: "uppercase", borderBottom: "1px solid #00d4aa33", paddingBottom: "6px", marginBottom: "14px", marginTop: "28px" },
@@ -93,7 +93,7 @@ const THEMES = [
     desc: "Cream, forest green",
     preview: { bg: "#f8f4ed", accent: "#2d5a3d", text: "#1a1a15" },
     styles: {
-      page: { background: "#f8f4ed", color: "#1a1a15", fontFamily: "'Garamond', 'EB Garamond', Georgia, serif", padding: "48px 56px", minHeight: "100%" },
+      page: { background: "#f8f4ed", color: "#1a1a15", fontFamily: "'Garamond', 'EB Garamond', Georgia, serif", padding: "48px 56px", minHeight: "560mm" },
       name: { fontSize: "36px", fontWeight: "400", color: "#1a1a15", letterSpacing: "1px", marginBottom: "4px", fontStyle: "italic" },
       contact: { fontSize: "11px", color: "#7a7060", letterSpacing: "0.5px", marginBottom: "32px" },
       sectionTitle: { fontSize: "10px", fontWeight: "700", color: "#2d5a3d", letterSpacing: "3px", textTransform: "uppercase", marginBottom: "14px", marginTop: "28px", borderBottom: "1px solid #2d5a3d55", paddingBottom: "6px" },
@@ -126,7 +126,7 @@ const generateResume = async (resumeText, jobDescription) => {
 const ResumePreview = ({ data, theme }) => {
   const s = theme.styles;
   return (
-    <div style={{ ...s.page, minHeight: "272mm" }} id="resume-output">
+    <div style={s.page} id="resume-output">
       <div style={s.name}>{data.name}</div>
       <div style={s.contact}>{data.contact}</div>
 
@@ -277,7 +277,14 @@ export default function App() {
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @media print {
           body > * { display: none !important; }
-          #resume-output { display: block !important; position: fixed; top: 0; left: 0; width: 100%; }
+          #resume-output {
+            display: block !important;
+            position: absolute; top: 0; left: 0;
+            width: 210mm; min-height: 560mm;
+            padding: 18mm 20mm !important;
+            font-size: 11pt !important;
+            box-sizing: border-box;
+          }
         }
       `}</style>
 
