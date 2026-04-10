@@ -1,3 +1,5 @@
+import { jsonrepair } from "jsonrepair";
+
 export const maxDuration = 60;
 
 export default async function handler(req, res) {
@@ -68,27 +70,19 @@ Your job is to TRANSFORM a resume to match a job description:
   const data = await groqRes.json();
   const text = (data.choices?.[0]?.message?.content || "").trim();
 
+  // Strip markdown fences
+  const stripped = text.replace(/^```(?:json)?|```$/gm, "").trim();
+
   // Try direct parse first
   try {
-    const result = JSON.parse(text);
-    return res.status(200).json(result);
+    return res.status(200).json(JSON.parse(stripped));
   } catch {}
 
-  // Strip markdown fences and try again
-  const stripped = text.replace(/^```(?:json)?|```$/gm, "").trim();
+  // Use jsonrepair to fix malformed JSON (unescaped chars, trailing commas, etc.)
   try {
-    const result = JSON.parse(stripped);
-    return res.status(200).json(result);
+    const repaired = jsonrepair(stripped);
+    return res.status(200).json(JSON.parse(repaired));
   } catch {}
 
-  // Extract first {...} block and try
-  const match = stripped.match(/\{[\s\S]*\}/);
-  if (match) {
-    try {
-      const result = JSON.parse(match[0]);
-      return res.status(200).json(result);
-    } catch {}
-  }
-
-  return res.status(500).json({ error: `Parse failed (${text.length} chars). Start: ${text.slice(0, 200)} ... End: ${text.slice(-100)}` });
+  return res.status(500).json({ error: `Could not parse response. End: ${stripped.slice(-150)}` });
 }
