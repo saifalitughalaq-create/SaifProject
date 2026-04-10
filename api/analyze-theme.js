@@ -149,7 +149,11 @@ SKILL_SIZE: [e.g. 10px]
 SKILL_RADIUS: [e.g. 4px or 0px or 20px]
 ACCENT: [main accent/brand color hex]`;
 
-  const VISION_MODELS = ["llama-3.2-90b-vision-preview", "llama-3.2-11b-vision-preview"];
+  const VISION_MODELS = [
+    "meta-llama/llama-4-maverick-17b-128e-instruct",
+    "meta-llama/llama-4-scout-17b-16e-instruct",
+    "llama-3.2-90b-vision-preview",
+  ];
   let data = null;
   let lastError = null;
 
