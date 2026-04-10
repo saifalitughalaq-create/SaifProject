@@ -65,48 +65,47 @@ export default async function handler(req, res) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "API key not configured" });
 
-  const prompt = `TASK: Rewrite the resume below to better target the job description. Do NOT analyze, score, or review. Your entire response must be the rewritten resume in the exact format shown.
+  const prompt = `TASK: Rewrite the resume to better match the job description language. Do NOT analyze or review. Output only the rewritten resume in the exact format below.
 
 DO NOT write: "Verdict", "Match", "Score", "Analysis", "Here is", "Based on", or any commentary.
 START your response with: NAME:
 
-TRUTHFULNESS RULES (most important):
-- NEVER invent skills, tools, software, or experiences that are not in the original resume
-- NEVER add SAP, ARIBA, Excel, or any specific tool unless it already appears in the resume
-- NEVER fabricate metrics — only use numbers that exist in the original resume
-- You may only rephrase and reframe what is already there, using job description language
+STEP 1 — Read the resume and note:
+- What tools and software are actually mentioned (e.g. SAP, Excel, specific systems)
+- What tasks and responsibilities are described
+- What metrics and numbers appear
 
-REWRITING RULES:
-- Keep name, contact info, job titles, companies, dates, and education exactly as in the original
-- Rephrase each bullet to emphasize the aspects most relevant to the job description
-- Use the job description's vocabulary and keywords to describe what the person already did
-- Each bullet must begin with a strong action verb
-- For SKILLS: only list skills that genuinely appear in the original resume; you may phrase them using job description terms if equivalent
-- Write the summary to connect the person's real background to this specific role
+STEP 2 — Rewrite following these rules:
+- ONLY include tools, skills, and software that appear in the resume from Step 1
+- If SAP is NOT in the resume, do NOT add SAP. If Excel is NOT in the resume, do NOT add Excel.
+- ONLY use metrics and numbers that already exist in the resume — do not invent percentages
+- Rephrase each bullet using the job description's vocabulary to describe what the person already did
+- Keep all names, job titles, companies, dates, and education exactly as in the original
+- Write the summary connecting the person's real background to this role
 
-EXACT OUTPUT FORMAT — follow this precisely:
-NAME: [person's full name from resume]
-CONTACT: [their contact info from resume]
-SUMMARY: [3-sentence summary connecting their real experience to this job]
-SKILLS: [skills only from the original resume, comma-separated]
-JOB: [their job title] | [company] | [location] | [dates]
-BULLET: [rewritten bullet using job keywords — only facts from the original]
-BULLET: [rewritten bullet using job keywords — only facts from the original]
-BULLET: [rewritten bullet using job keywords — only facts from the original]
-BULLET: [rewritten bullet using job keywords — only facts from the original]
-BULLET: [rewritten bullet using job keywords — only facts from the original]
-BULLET: [rewritten bullet using job keywords — only facts from the original]
-(repeat JOB and BULLET lines for every job in the resume)
+EXACT OUTPUT FORMAT:
+NAME: [full name from resume]
+CONTACT: [contact info from resume]
+SUMMARY: [3 sentences using job description language to describe their real experience]
+SKILLS: [only skills/tools that appear in the original resume, comma-separated]
+JOB: [job title] | [company] | [location] | [dates]
+BULLET: [reworded bullet — same fact, job description language, action verb first]
+BULLET: [reworded bullet — same fact, job description language, action verb first]
+BULLET: [reworded bullet — same fact, job description language, action verb first]
+BULLET: [reworded bullet — same fact, job description language, action verb first]
+BULLET: [reworded bullet — same fact, job description language, action verb first]
+BULLET: [reworded bullet — same fact, job description language, action verb first]
+(repeat JOB + BULLET blocks for every position in the resume)
 EDU: [degree] | [school] | [location] | [year]
-BULLET: [real academic achievement relevant to the job]
-BULLET: [real academic achievement relevant to the job]
+BULLET: [real education achievement]
+BULLET: [real education achievement]
 
 ---
-RESUME TO REWRITE:
+RESUME:
 ${resumeText}
 
 ---
-JOB DESCRIPTION TO TARGET:
+JOB DESCRIPTION:
 ${jobDescription}
 
 ---
