@@ -14,7 +14,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "API key not configured on server" });
   }
 
-  const prompt = `You are an expert resume writer. Analyze this resume and job description, then generate a perfectly tailored resume.
+  const prompt = `Tailor this resume to the job description. Reply with ONLY a JSON object, nothing else.
 
 BASE RESUME:
 ${resumeText}
@@ -22,34 +22,8 @@ ${resumeText}
 JOB DESCRIPTION:
 ${jobDescription}
 
-Generate a tailored resume as a JSON object with this exact structure:
-{
-  "name": "Full Name",
-  "contact": "City, Province | Phone | Email | LinkedIn",
-  "summary": "2-3 sentence professional summary tailored to the job",
-  "skills": ["skill1", "skill2", "skill3", "skill4", "skill5", "skill6", "skill7", "skill8"],
-  "experience": [
-    {
-      "title": "Job Title",
-      "company": "Company Name | Location | Dates",
-      "bullets": ["bullet1", "bullet2", "bullet3", "bullet4", "bullet5"]
-    }
-  ],
-  "education": [
-    {
-      "degree": "Degree Name",
-      "school": "School Name | Location | Dates",
-      "bullets": ["bullet1", "bullet2"]
-    }
-  ]
-}
-
-Rules:
-- Mirror the job description language in bullets
-- Quantify achievements where possible
-- Keep bullets concise and impactful
-- No em dashes
-- Return ONLY the JSON, no other text`;
+Reply with ONLY this JSON structure filled in (no markdown, no explanation):
+{"name":"","contact":"","summary":"","skills":[],"experience":[{"title":"","company":"","bullets":[]}],"education":[{"degree":"","school":"","bullets":[]}]}`;
 
   const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
@@ -58,12 +32,15 @@ Rules:
       "Authorization": `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "llama3-70b-8192",
+      model: "llama-3.3-70b-versatile",
       messages: [
-        { role: "system", content: "You are a resume writer. Output ONLY a valid JSON object. No explanation, no markdown, no code fences. Start your response with { and end with }." },
+        {
+          role: "system",
+          content: "You are a JSON API. You only output valid JSON. Never output text, explanations, or markdown. Your entire response must be a single JSON object starting with { and ending with }."
+        },
         { role: "user", content: prompt }
       ],
-      temperature: 0.4,
+      temperature: 0.3,
       max_tokens: 2048,
     }),
   });
@@ -76,19 +53,29 @@ Rules:
   }
 
   const data = await groqRes.json();
-  const text = data.choices?.[0]?.message?.content || "";
+  const text = (data.choices?.[0]?.message?.content || "").trim();
 
-  // Strip markdown fences if present, then extract first JSON object
-  const stripped = text.replace(/```json|```/g, "").trim();
-  const match = stripped.match(/\{[\s\S]*\}/);
-  if (!match) {
-    return res.status(500).json({ error: `No JSON found. Model said: ${stripped.slice(0, 200)}` });
-  }
-
+  // Try direct parse first
   try {
-    const result = JSON.parse(match[0]);
+    const result = JSON.parse(text);
     return res.status(200).json(result);
-  } catch {
-    return res.status(500).json({ error: "Failed to parse AI response" });
+  } catch {}
+
+  // Strip markdown fences and try again
+  const stripped = text.replace(/^```(?:json)?|```$/gm, "").trim();
+  try {
+    const result = JSON.parse(stripped);
+    return res.status(200).json(result);
+  } catch {}
+
+  // Extract first {...} block and try
+  const match = stripped.match(/\{[\s\S]*\}/);
+  if (match) {
+    try {
+      const result = JSON.parse(match[0]);
+      return res.status(200).json(result);
+    } catch {}
   }
+
+  return res.status(500).json({ error: `Model returned: ${text.slice(0, 300)}` });
 }
