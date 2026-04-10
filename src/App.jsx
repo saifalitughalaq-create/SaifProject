@@ -584,6 +584,7 @@ export default function App() {
 
   const handleFile = async (file) => {
     if (!file) return;
+    setError(null);
     const ext = file.name.split(".").pop().toLowerCase();
 
     if (ext === "docx") {
@@ -591,8 +592,13 @@ export default function App() {
       const result = await mammoth.extractRawText({ arrayBuffer });
       setResumeText(result.value);
     } else if (ext === "pdf") {
-      setResumeText("");
-      setError("PDF upload is not supported. Please copy-paste your resume text into the box below.");
+      try {
+        const text = await extractTextFromPDF(file);
+        if (!text.trim()) throw new Error("empty");
+        setResumeText(text);
+      } catch {
+        setError("Could not extract text from this PDF. Please paste your resume below instead.");
+      }
     } else {
       const reader = new FileReader();
       reader.onload = (e) => setResumeText(e.target.result);
@@ -659,143 +665,134 @@ export default function App() {
     };
   };
 
-  const extractThemeFromImage = (file) => new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      const scale = Math.min(1, 300 / Math.max(img.width, img.height));
-      const canvas = document.createElement("canvas");
-      canvas.width  = Math.round(img.width  * scale);
-      canvas.height = Math.round(img.height * scale);
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      const { data: px } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-      const toHex = (r, g, b) =>
-        "#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join("");
-      const lum = (r, g, b) => (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-      const sat = (r, g, b) => {
-        const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
-        return mx === 0 ? 0 : (mx - mn) / mx;
-      };
-
-      // Build a frequency map (quantise to 8-bit buckets for grouping)
-      const freq = new Map();
-      for (let i = 0; i < px.length; i += 4) {
-        if (px[i + 3] < 200) continue; // skip transparent
-        const r = Math.round(px[i]   / 8) * 8;
-        const g = Math.round(px[i+1] / 8) * 8;
-        const b = Math.round(px[i+2] / 8) * 8;
-        const k = `${r},${g},${b}`;
-        freq.set(k, (freq.get(k) || 0) + 1);
-      }
-
-      const colors = [...freq.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 80)
-        .map(([k]) => {
-          const [r, g, b] = k.split(",").map(Number);
-          return { h: toHex(r, g, b), r, g, b, lum: lum(r, g, b), sat: sat(r, g, b) };
-        });
-
-      const bg     = colors.find(c => c.lum > 0.88) || { h: "#ffffff" };
-      const textC  = colors.find(c => c.lum < 0.22)  || { h: "#1a1a1a" };
-      const accent = colors
-        .filter(c => c.sat > 0.18 && c.lum > 0.08 && c.lum < 0.82)
-        .sort((a, b) => b.sat - a.sat)[0] || { h: "#2563eb" };
-
-      URL.revokeObjectURL(url);
-      resolve(buildThemeFromColors(bg.h, textC.h, accent.h, { font: "sans" }));
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Cannot load image")); };
-    img.src = url;
-  });
-
-  const extractThemeFromDocx = async (file) => {
+  // ── PDF text extraction ───────────────────────────────────────────────────
+  const extractTextFromPDF = async (file) => {
     const arrayBuffer = await file.arrayBuffer();
+    const pdfjsLib = await import("pdfjs-dist");
+    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+      "pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url
+    ).toString();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const pages = await Promise.all(
+      Array.from({ length: pdf.numPages }, (_, i) => pdf.getPage(i + 1))
+    );
+    const texts = await Promise.all(
+      pages.map(async (page) => {
+        const content = await page.getTextContent();
+        return content.items.map(item => item.str).join(" ");
+      })
+    );
+    return texts.join("\n");
+  };
 
-    // Extract styled HTML from DOCX
-    const htmlResult = await mammoth.convertToHtml({ arrayBuffer }, {
-      styleMap: [
-        "p[style-name='Heading 1'] => h1:fresh",
-        "p[style-name='Heading 2'] => h2:fresh",
-      ]
-    });
-    const html = htmlResult.value;
+  // ── Exact DOCX theme extraction via raw XML (JSZip) ───────────────────────
+  const extractThemeFromDocx = async (file) => {
+    const { default: JSZip } = await import("jszip");
+    const arrayBuffer = await file.arrayBuffer();
+    const zip = await JSZip.loadAsync(arrayBuffer);
 
-    // Parse HTML to extract colors and fonts
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(`<div>${html}</div>`, "text/html");
-
-    const hexColors = new Set();
-    const fontNames = new Set();
-
-    doc.querySelectorAll("[style]").forEach(el => {
-      const style = el.getAttribute("style") || "";
-      // Extract hex colors
-      for (const m of style.matchAll(/color\s*:\s*(#[0-9a-fA-F]{3,6})/gi)) {
-        hexColors.add(m[1].toLowerCase());
-      }
-      // Extract font families
-      for (const m of style.matchAll(/font-family\s*:\s*["']?([^;,"']+)/gi)) {
-        fontNames.add(m[1].trim().toLowerCase());
-      }
-    });
-
-    // Classify colors
-    const toRgb = h => {
-      const s = h.replace("#","");
-      const full = s.length === 3 ? s.split("").map(c=>c+c).join("") : s;
-      return { r: parseInt(full.slice(0,2),16), g: parseInt(full.slice(2,4),16), b: parseInt(full.slice(4,6),16) };
+    // Strip XML namespace prefixes so querySelectorAll works normally
+    const strip = (xml) => xml.replace(/[a-zA-Z0-9]+:/g, "");
+    const parse = async (path) => {
+      const f = zip.file(path);
+      if (!f) return null;
+      return new DOMParser().parseFromString(strip(await f.async("string")), "text/xml");
     };
-    const lum = ({r,g,b}) => (0.299*r + 0.587*g + 0.114*b) / 255;
-    const sat = ({r,g,b}) => { const mx=Math.max(r,g,b),mn=Math.min(r,g,b); return mx===0?0:(mx-mn)/mx; };
 
-    const colorList = [...hexColors].map(h => ({ h, ...toRgb(h) }))
-      .map(c => ({ ...c, lum: lum(c), sat: sat(c) }));
+    // Helper: read a hex color from an element that contains <srgbClr val="…"> or <sysClr lastClr="…">
+    const hexFromEl = (el) => {
+      if (!el) return null;
+      const srgb = el.querySelector("srgbClr");
+      const sys  = el.querySelector("sysClr");
+      const raw  = srgb?.getAttribute("val") || sys?.getAttribute("lastClr") || "";
+      return raw.length === 6 ? "#" + raw.toLowerCase() : null;
+    };
 
-    const bg      = colorList.find(c => c.lum > 0.85) || { h: "#ffffff" };
-    const textCol = colorList.find(c => c.lum < 0.2)  || { h: "#1a1a1a" };
-    const accent  = colorList
-      .filter(c => c.sat > 0.2 && c.lum > 0.1 && c.lum < 0.85)
-      .sort((a,b) => b.sat - a.sat)[0] || { h: "#2563eb" };
+    let bgHex = "#ffffff", textHex = "#1a1a1a", accentHex = "#2e74b5";
+    let fontFamily = "sans", nameCaps = false, nameCentered = false, nameItalic = false;
 
-    // Detect font type
-    const fontStr = [...fontNames].join(" ").toLowerCase();
-    const font = fontStr.includes("georgia") || fontStr.includes("garamond") || fontStr.includes("times") || fontStr.includes("cambria") || fontStr.includes("palatino")
-      ? "serif"
-      : fontStr.includes("courier") || fontStr.includes("consolas") || fontStr.includes("mono")
-        ? "mono"
-        : "sans";
+    // ── 1. Theme XML — exact accent / bg / text colors ────────────────────
+    const themeDoc = await parse("word/theme/theme1.xml") || await parse("word/theme/theme.xml");
+    if (themeDoc) {
+      bgHex     = hexFromEl(themeDoc.querySelector("lt1"))  || bgHex;
+      textHex   = hexFromEl(themeDoc.querySelector("dk1"))  || textHex;
+      // Prefer accent1, fall back to dk2 (often used as nav/sidebar color)
+      accentHex = hexFromEl(themeDoc.querySelector("accent1"))
+               || hexFromEl(themeDoc.querySelector("dk2"))
+               || accentHex;
 
-    // Detect name style from first heading
-    const h1 = doc.querySelector("h1, strong");
-    const h1Style = h1 ? (h1.getAttribute("style") || "") : "";
-    const nameCaps = h1 ? h1.textContent === h1.textContent.toUpperCase() && h1.textContent.trim().length > 0 : false;
-    const nameItalic = h1Style.includes("italic");
-    const nameCentered = h1Style.includes("center") || (h1 && h1.closest("p")?.getAttribute("style")?.includes("center"));
+      const maj = themeDoc.querySelector("majorFont latin")?.getAttribute("typeface") || "";
+      const min = themeDoc.querySelector("minorFont latin")?.getAttribute("typeface") || "";
+      const fs  = (maj + " " + min).toLowerCase();
+      if (/georgia|garamond|times|cambria|palatino|book antiqua/.test(fs)) fontFamily = "serif";
+      else if (/courier|consolas|mono/.test(fs)) fontFamily = "mono";
+    }
 
-    return buildThemeFromColors(bg.h, textCol.h, accent.h, { font, nameCaps, nameItalic, nameCentered, divider: "underline", skillShape: "box" });
+    // ── 2. Styles XML — heading 1 color overrides accent, detects caps/center ─
+    const stylesDoc = await parse("word/styles.xml");
+    if (stylesDoc) {
+      const h1 = [...stylesDoc.querySelectorAll("style")].find(s => {
+        const id  = s.getAttribute("styleId") || "";
+        const nm  = s.querySelector("name")?.getAttribute("val")?.toLowerCase() || "";
+        return id === "Heading1" || nm === "heading 1" || id === "1";
+      });
+      if (h1) {
+        // Heading color is the dominant accent in Word templates
+        const clrEl = h1.querySelector("rPr color");
+        const clrVal = clrEl?.getAttribute("val") || "";
+        if (clrVal.length === 6 && clrVal !== "auto") accentHex = "#" + clrVal.toLowerCase();
+
+        nameCaps    = !!(h1.querySelector("rPr caps") || h1.querySelector("rPr smallCaps"));
+        nameItalic  = !!h1.querySelector("rPr i");
+        const jc    = h1.querySelector("pPr jc")?.getAttribute("val") || "";
+        nameCentered = jc === "center";
+      }
+
+      // Body font override from Normal style
+      const normal = [...stylesDoc.querySelectorAll("style")].find(s =>
+        (s.getAttribute("styleId") || "").toLowerCase() === "normal" ||
+        (s.querySelector("name")?.getAttribute("val") || "").toLowerCase() === "normal"
+      );
+      if (normal) {
+        const fn = normal.querySelector("rPr rFonts")?.getAttribute("ascii") || "";
+        if (/georgia|garamond|times|cambria|palatino/.test(fn.toLowerCase())) fontFamily = "serif";
+        else if (/courier|consolas/.test(fn.toLowerCase())) fontFamily = "mono";
+      }
+    }
+
+    // ── 3. Document.xml — page background color ───────────────────────────
+    const docDoc = await parse("word/document.xml");
+    if (docDoc) {
+      const pgClr = docDoc.querySelector("background")?.getAttribute("color");
+      if (pgClr && pgClr !== "auto" && pgClr.length === 6) bgHex = "#" + pgClr.toLowerCase();
+    }
+
+    return buildThemeFromColors(bgHex, textHex, accentHex, {
+      font: fontFamily,
+      nameCaps,
+      nameItalic,
+      nameCentered,
+      divider: "underline",
+      skillShape: "box",
+    });
   };
 
   const handleThemeUpload = async (file) => {
     if (!file) return;
     const ext = file.name.split(".").pop().toLowerCase();
-    const isDocx  = ext === "docx";
-    const isImage = ["png", "jpg", "jpeg", "webp"].includes(ext);
-    if (!isDocx && !isImage) {
-      setCustomThemeError("Upload a .docx resume or an image (.png / .jpg) of your template.");
+    if (ext !== "docx") {
+      setCustomThemeError("Please upload a .docx file — exact colors and fonts are read directly from the Word document.");
       return;
     }
     setCustomThemeLoading(true);
     setCustomThemeError(null);
     setCustomThemePreview(null);
     try {
-      const theme = isDocx ? await extractThemeFromDocx(file) : await extractThemeFromImage(file);
+      const theme = await extractThemeFromDocx(file);
       setCustomTheme(theme);
       setSelectedTheme(theme);
     } catch {
-      setCustomThemeError("Could not read the file. Try a different image or .docx.");
+      setCustomThemeError("Could not read the .docx. Make sure it's a valid Word document.");
     }
     setCustomThemeLoading(false);
   };
@@ -994,8 +991,8 @@ export default function App() {
               <div style={{ color: "#555", fontSize: "13px", marginBottom: "4px" }}>
                 Drop file here or <span style={{ textDecoration: "underline" }}>click to browse</span>
               </div>
-              <div style={{ color: "#aaa", fontSize: "11px" }}>Supports .txt, .pdf, .docx</div>
-              <input ref={fileRef} type="file" accept=".txt,.pdf,.docx" style={{ display: "none" }} onChange={(e) => handleFile(e.target.files[0])} />
+              <div style={{ color: "#aaa", fontSize: "11px" }}>Supports .docx, .pdf, .txt</div>
+              <input ref={fileRef} type="file" accept=".docx,.pdf,.txt" style={{ display: "none" }} onChange={(e) => handleFile(e.target.files[0])} />
             </div>
 
             <div style={{ fontSize: "12px", color: "#888", marginBottom: "8px" }}>Or paste your resume text:</div>
@@ -1028,7 +1025,7 @@ export default function App() {
         {step === 2 && (
           <div className="fade-in">
             <h1 style={{ fontSize: "22px", fontWeight: "700", marginBottom: "6px" }}>Choose a Theme</h1>
-            <p style={{ color: "#666", fontSize: "14px", marginBottom: "24px" }}>Pick a preset, or upload any resume (.docx or screenshot) to replicate its exact color scheme and style.</p>
+            <p style={{ color: "#666", fontSize: "14px", marginBottom: "24px" }}>Pick a preset or upload a .docx resume — exact colors and fonts are extracted from the Word file itself.</p>
 
             {/* Custom theme upload */}
             <div style={{ marginBottom: "24px" }}>
@@ -1128,8 +1125,8 @@ export default function App() {
                     </div>
                   ) : (
                     <div>
-                      <div style={{ fontWeight: "600", fontSize: "13px", marginBottom: "3px" }}>Upload any resume to copy its style</div>
-                      <div style={{ fontSize: "11px", color: "#888" }}>.docx · .png · .jpg — extracts colors and fonts automatically</div>
+                      <div style={{ fontWeight: "600", fontSize: "13px", marginBottom: "3px" }}>Upload a .docx resume to copy its exact style</div>
+                      <div style={{ fontSize: "11px", color: "#888" }}>Colors, fonts, and name style read directly from the Word XML</div>
                     </div>
                   )}
                   {customThemeError && (
@@ -1140,7 +1137,7 @@ export default function App() {
               <input
                 ref={themeFileRef}
                 type="file"
-                accept=".docx,.png,.jpg,.jpeg,.webp"
+                accept=".docx"
                 style={{ display: "none" }}
                 onChange={(e) => handleThemeUpload(e.target.files[0])}
               />
