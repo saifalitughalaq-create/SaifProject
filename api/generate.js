@@ -65,40 +65,45 @@ export default async function handler(req, res) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "API key not configured" });
 
-  const prompt = `You are rewriting this resume to perfectly match the job description below.
+  const prompt = `TASK: Rewrite the resume below so it perfectly targets the job description. Do NOT analyze, score, or review anything. Your entire response must be the rewritten resume in the exact format shown.
 
-RULES:
-- Use the job description's exact keywords and phrases throughout
-- Rewrite EVERY bullet point — never copy original wording
-- Each bullet must start with a strong action verb and include numbers/percentages where possible
-- The summary must reflect this specific role
-- Skills must include terms from the job description
-- Output ONLY in the exact format below — no markdown, no code blocks, no extra text
+DO NOT write: "Verdict", "Match", "Score", "Analysis", "Here is", "Based on", or any commentary.
+START your response with: NAME:
 
-OUTPUT FORMAT (copy exactly, fill in the values):
-NAME: [full name]
-CONTACT: [city, province | phone | email | linkedin]
-SUMMARY: [3 sentences tailored to this job using its exact keywords]
-SKILLS: [skill1, skill2, skill3, skill4, skill5, skill6, skill7, skill8, skill9, skill10, skill11, skill12]
-JOB: [title] | [company] | [location] | [dates]
-BULLET: [rewritten bullet with job keywords and metric]
-BULLET: [rewritten bullet with job keywords and metric]
-BULLET: [rewritten bullet with job keywords and metric]
-BULLET: [rewritten bullet with job keywords and metric]
-BULLET: [rewritten bullet with job keywords and metric]
-BULLET: [rewritten bullet with job keywords and metric]
-(repeat JOB + BULLET blocks for every position in the original resume)
+REWRITING RULES:
+- Copy the person's name, contact info, job titles, companies, dates, and education from the original resume
+- Rewrite every bullet point using the job description's exact keywords and language
+- Each bullet must begin with an action verb and include a quantified result (%, $, time saved, etc.)
+- Write the summary using keywords directly from the job description
+- List skills that appear in the job description
+
+EXACT OUTPUT FORMAT — follow this precisely:
+NAME: [person's full name from resume]
+CONTACT: [their contact info from resume]
+SUMMARY: [3-sentence summary using job description keywords]
+SKILLS: [12 skills, comma-separated, matching job description terms]
+JOB: [their job title] | [company] | [location] | [dates]
+BULLET: [rewritten bullet — action verb + job keyword + metric]
+BULLET: [rewritten bullet — action verb + job keyword + metric]
+BULLET: [rewritten bullet — action verb + job keyword + metric]
+BULLET: [rewritten bullet — action verb + job keyword + metric]
+BULLET: [rewritten bullet — action verb + job keyword + metric]
+BULLET: [rewritten bullet — action verb + job keyword + metric]
+(repeat JOB and BULLET lines for every job in the resume)
 EDU: [degree] | [school] | [location] | [year]
-BULLET: [relevant academic achievement]
-BULLET: [relevant academic achievement]
+BULLET: [achievement relevant to the job]
+BULLET: [achievement relevant to the job]
 
 ---
-RESUME:
+RESUME TO REWRITE:
 ${resumeText}
 
 ---
-JOB DESCRIPTION:
-${jobDescription}`;
+JOB DESCRIPTION TO TARGET:
+${jobDescription}
+
+---
+BEGIN OUTPUT (start with NAME:):`;
 
   const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
@@ -108,7 +113,7 @@ ${jobDescription}`;
       messages: [
         {
           role: "system",
-          content: "You are an expert resume writer. Output ONLY plain text in the exact format requested — no markdown, no code blocks, no preamble, no commentary. Start your response with NAME: on the first line."
+          content: "You are a resume rewriter. Your only job is to rewrite the resume in the exact plain-text format the user provides. Never analyze, score, or review. Never add commentary, preamble, or markdown. Your output must start with NAME: and contain only the formatted resume lines."
         },
         { role: "user", content: prompt }
       ],
