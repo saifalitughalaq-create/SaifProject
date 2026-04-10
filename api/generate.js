@@ -14,7 +14,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "API key not configured on server" });
   }
 
-  const prompt = `Tailor this resume to the job description. Reply with ONLY a JSON object, nothing else.
+  const prompt = `You are a professional resume writer. Rewrite the candidate's resume to be STRONGLY tailored to the job description below. Do NOT copy bullets verbatim — rewrite and reframe every bullet to mirror the job description's language, keywords, and priorities. The result must read like it was written specifically for this job.
 
 BASE RESUME:
 ${resumeText}
@@ -22,8 +22,17 @@ ${resumeText}
 JOB DESCRIPTION:
 ${jobDescription}
 
-Reply with ONLY this JSON structure filled in (no markdown, no explanation):
-{"name":"","contact":"","summary":"","skills":[],"experience":[{"title":"","company":"","bullets":[]}],"education":[{"degree":"","school":"","bullets":[]}]}`;
+INSTRUCTIONS:
+- Rewrite the professional summary to directly target this specific role and company
+- Rewrite every bullet point to use keywords and phrases from the job description
+- Quantify achievements with numbers/percentages wherever possible
+- Add extra bullets to each role (7-8 bullets per job) to fill a 2-page resume
+- Include 12-15 skills that match the job description requirements
+- If the job mentions specific tools, software, or methodologies — include them if the candidate has relevant experience
+- No em dashes, no fluff, every word must add value
+
+Reply with ONLY this JSON structure filled in (no markdown, no explanation, no extra text):
+{"name":"","contact":"","summary":"","skills":["","","","","","","","","","","",""],"experience":[{"title":"","company":"","bullets":["","","","","","","",""]}],"education":[{"degree":"","school":"","bullets":["",""]}]}`;
 
   const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",

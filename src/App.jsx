@@ -126,7 +126,7 @@ const generateResume = async (resumeText, jobDescription) => {
 const ResumePreview = ({ data, theme }) => {
   const s = theme.styles;
   return (
-    <div style={s.page} id="resume-output">
+    <div style={{ ...s.page, minHeight: "272mm" }} id="resume-output">
       <div style={s.name}>{data.name}</div>
       <div style={s.contact}>{data.contact}</div>
 
@@ -134,7 +134,7 @@ const ResumePreview = ({ data, theme }) => {
       <div style={s.summary}>{data.summary}</div>
 
       <div style={s.sectionTitle}>Key Skills</div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "4px" }}>
         {data.skills.map((sk, i) => (
           <span key={i} style={s.skillTag}>{sk}</span>
         ))}
@@ -142,11 +142,11 @@ const ResumePreview = ({ data, theme }) => {
 
       <div style={s.sectionTitle}>Professional Experience</div>
       {data.experience.map((job, i) => (
-        <div key={i} style={{ marginBottom: "20px" }}>
+        <div key={i} style={{ marginBottom: "22px" }}>
           <div style={s.jobTitle}>{job.title}</div>
           <div style={s.company}>{job.company}</div>
           {job.bullets.map((b, j) => (
-            <div key={j} style={s.bullet}>
+            <div key={j} style={{ ...s.bullet, marginBottom: "6px" }}>
               <span style={{ position: "absolute", left: "0", color: theme.preview.accent }}>•</span>
               {b}
             </div>
@@ -160,7 +160,7 @@ const ResumePreview = ({ data, theme }) => {
           <div style={s.jobTitle}>{edu.degree}</div>
           <div style={s.company}>{edu.school}</div>
           {edu.bullets.map((b, j) => (
-            <div key={j} style={s.bullet}>
+            <div key={j} style={{ ...s.bullet, marginBottom: "6px" }}>
               <span style={{ position: "absolute", left: "0", color: theme.preview.accent }}>•</span>
               {b}
             </div>
@@ -168,7 +168,7 @@ const ResumePreview = ({ data, theme }) => {
         </div>
       ))}
 
-      <div style={{ marginTop: "32px", textAlign: "center", fontSize: "10px", color: theme.preview.accent + "66", letterSpacing: "2px" }}>
+      <div style={{ marginTop: "40px", textAlign: "center", fontSize: "10px", color: theme.preview.accent + "66", letterSpacing: "2px" }}>
         REFERENCES AVAILABLE UPON REQUEST
       </div>
     </div>
