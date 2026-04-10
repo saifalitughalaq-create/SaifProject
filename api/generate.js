@@ -82,7 +82,7 @@ Respond with ONLY valid JSON:
       "Authorization": `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "llama-3.3-70b-versatile",
+      model: "gemma2-9b-it",
       messages: [
         {
           role: "system",
