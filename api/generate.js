@@ -59,10 +59,12 @@ Rules:
     },
     body: JSON.stringify({
       model: "llama-3.3-70b-versatile",
-      messages: [{ role: "user", content: prompt }],
+      messages: [
+        { role: "system", content: "You are an expert resume writer. You always respond with valid JSON only — no markdown, no explanation, no extra text. Just the raw JSON object." },
+        { role: "user", content: prompt }
+      ],
       temperature: 0.4,
       max_tokens: 2048,
-      response_format: { type: "json_object" },
     }),
   });
 
