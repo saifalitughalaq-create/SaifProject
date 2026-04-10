@@ -81,58 +81,69 @@ export default async function handler(req, res) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "API key not configured" });
 
-  const prompt = `You are a professional resume analyst and rewriter. Do the following in order:
+  const prompt = `You are rewriting this person's resume from scratch to target a specific job. Every single word must be chosen to match the job description. The original resume is only a source of facts — dates, companies, job titles, metrics, and real experiences. The actual writing must be completely new.
 
-STEP 1 — Analyze the job description and extract:
-- Every specific responsibility listed
-- Every required skill, tool, or qualification
-- Key action verbs and terminology used
-
-STEP 2 — Analyze the resume and for each JD requirement determine:
-- COVERED: the person genuinely has this experience (from their resume)
-- GAP: the person does not have this, or it is not mentioned in their resume
-
-STEP 3 — Rewrite the resume:
-- Rephrase bullets to use the JD's exact vocabulary for things the person already did
-- Do NOT add any skill, tool, software, or metric not present in the original resume
-- Do NOT invent SAP, ARIBA, Excel, or any tool unless it appears in the resume
-- Keep all names, job titles, companies, dates, education exactly as-is
-- Each bullet: action verb + JD keyword + real metric from resume
-- Summary: connect their real background to this role using JD language
-
-OUTPUT — use this exact format, no extra text, no markdown:
-MATCH_SCORE: [0-100 integer: what % of JD requirements this resume genuinely covers]
-COVERED: [requirement1 | requirement2 | requirement3 | ...all covered items]
-GAPS: [gap1 | gap2 | gap3 | ...all genuine gaps]
-NAME: [from resume]
-CONTACT: [from resume]
-SUMMARY: [3 sentences using JD language to describe their real experience]
-SKILLS: [only skills present in original resume, comma-separated]
-JOB: [title] | [company] | [location] | [dates]
-BULLET: [reworded — same fact, JD language, action verb]
-BULLET: [reworded — same fact, JD language, action verb]
-BULLET: [reworded — same fact, JD language, action verb]
-BULLET: [reworded — same fact, JD language, action verb]
-BULLET: [reworded — same fact, JD language, action verb]
-BULLET: [reworded — same fact, JD language, action verb]
-(repeat JOB + BULLET for every position in the resume)
-EDU: [degree] | [school] | [location] | [year]
-BULLET: [real achievement]
-BULLET: [real achievement]
+DO NOT copy any sentence from the original resume. DO NOT keep original phrasing. REWRITE EVERYTHING.
+DO NOT add skills, tools, software, or metrics that are not in the original resume.
+START your output with: MATCH_SCORE:
 
 ---
-RESUME:
+STEP 1: Read the job description. List every responsibility and requirement in your head.
+
+STEP 2: Read the resume. Note:
+- Actual job titles, companies, dates
+- Real metrics and numbers (keep these exactly)
+- What the person actually did (the facts, not the words)
+- Skills and tools actually mentioned
+
+STEP 3: For each JD requirement, decide: does this person's real experience cover it? (COVERED) or not? (GAP)
+
+STEP 4: Write the new resume using JD language throughout. Rules:
+- Summary: 3 sentences written specifically for THIS job, using JD keywords to describe their real background
+- Skills: only what exists in the resume, but use JD terminology where equivalent (e.g. "financial close" if they have it)
+- Every bullet: START with an action verb from the JD, use JD keyword phrases, keep original metrics
+- Bullets must sound like they were written by someone who has been doing exactly THIS job
+- Each job should have 5-6 bullets that collectively cover as many JD requirements as possible
+
+EXAMPLE of weak vs strong rewriting:
+WEAK: "Processed financial transactions with 98% accuracy"
+STRONG: "Managed high-volume intercompany accounting and COGS reconciliation supporting month-end and quarter-end financial close cycles, maintaining 98% transaction accuracy"
+(Same fact, completely different — now matches JD language exactly)
+
+---
+OUTPUT FORMAT (no markdown, no extra text):
+MATCH_SCORE: [0-100]
+COVERED: [jd requirement | jd requirement | ...]
+GAPS: [missing skill or experience | ...]
+NAME: [full name]
+CONTACT: [contact info]
+SUMMARY: [3 sentences — completely rewritten using JD vocabulary]
+SKILLS: [only real skills from resume, JD terminology preferred, comma-separated]
+JOB: [title] | [company] | [location] | [dates]
+BULLET: [completely new bullet — JD action verb + JD keyword + real metric]
+BULLET: [completely new bullet — JD action verb + JD keyword + real metric]
+BULLET: [completely new bullet — JD action verb + JD keyword + real metric]
+BULLET: [completely new bullet — JD action verb + JD keyword + real metric]
+BULLET: [completely new bullet — JD action verb + JD keyword + real metric]
+BULLET: [completely new bullet — JD action verb + JD keyword + real metric]
+(repeat JOB + BULLET blocks for every position)
+EDU: [degree] | [school] | [location] | [year]
+BULLET: [achievement]
+BULLET: [achievement]
+
+---
+RESUME (source of facts only):
 ${resumeText}
 
 ---
-JOB DESCRIPTION:
+JOB DESCRIPTION (target language and requirements):
 ${jobDescription}
 
 ---
-START OUTPUT (first line must be MATCH_SCORE:):`;
+BEGIN (first line must be MATCH_SCORE:):`;
 
   const MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "llama3-8b-8192"];
-  const systemPrompt = "You are a resume analyst and rewriter. Follow the output format exactly. Never fabricate skills, tools, or metrics not in the original resume. Output plain text only — no markdown, no preamble.";
+  const systemPrompt = "You are a professional resume writer. Your job is to completely rewrite resumes from scratch using the target job description's exact language. Never copy original wording. Never fabricate skills, tools, or metrics not in the original resume. Output plain text only — no markdown, no preamble. First line of output must be MATCH_SCORE:";
 
   let data = null;
   let lastError = null;
