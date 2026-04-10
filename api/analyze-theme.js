@@ -170,3 +170,4 @@ SIDEBAR_COLOR: [hex color of sidebar if present, else leave blank]`;
 
   return res.status(500).json({ error: "All Gemini models failed. Check your GEMINI_API_KEY in Vercel." });
 }
+// trigger redeploy Fri Apr 10 02:15:02 UTC 2026
