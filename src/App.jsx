@@ -469,6 +469,66 @@ export default function App() {
               </div>
             </div>
 
+            {/* Match Analysis Card */}
+            {(generated.matchScore > 0 || generated.covered?.length > 0 || generated.gaps?.length > 0) && (
+              <div style={{ background: "#fff", border: "1px solid #e0e0e0", borderRadius: "10px", padding: "20px 24px", marginBottom: "20px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "20px", marginBottom: "16px", flexWrap: "wrap" }}>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{
+                      width: "72px", height: "72px", borderRadius: "50%",
+                      background: generated.matchScore >= 80 ? "#dcfce7" : generated.matchScore >= 60 ? "#fef9c3" : "#fee2e2",
+                      border: `3px solid ${generated.matchScore >= 80 ? "#16a34a" : generated.matchScore >= 60 ? "#ca8a04" : "#dc2626"}`,
+                      display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column",
+                    }}>
+                      <span style={{ fontSize: "18px", fontWeight: "700", color: generated.matchScore >= 80 ? "#16a34a" : generated.matchScore >= 60 ? "#ca8a04" : "#dc2626" }}>
+                        {generated.matchScore}%
+                      </span>
+                    </div>
+                    <div style={{ fontSize: "10px", color: "#888", marginTop: "4px", letterSpacing: "0.5px", textTransform: "uppercase" }}>JD Match</div>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: "600", fontSize: "14px", marginBottom: "4px" }}>
+                      {generated.matchScore >= 80 ? "Strong match — ready to apply" :
+                       generated.matchScore >= 60 ? "Good match — minor gaps" :
+                       "Partial match — see gaps below"}
+                    </div>
+                    <div style={{ fontSize: "12px", color: "#666", lineHeight: "1.5" }}>
+                      Based on your actual experience only — no skills were added that you don't have.
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  {generated.covered?.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: "11px", fontWeight: "700", color: "#16a34a", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>
+                        Covered ({generated.covered.length})
+                      </div>
+                      {generated.covered.map((item, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "5px" }}>
+                          <span style={{ color: "#16a34a", fontSize: "12px", flexShrink: 0, marginTop: "1px" }}>✓</span>
+                          <span style={{ fontSize: "12px", color: "#333", lineHeight: "1.4" }}>{item}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {generated.gaps?.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: "11px", fontWeight: "700", color: "#dc2626", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>
+                        Gaps ({generated.gaps.length})
+                      </div>
+                      {generated.gaps.map((item, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: "6px", marginBottom: "5px" }}>
+                          <span style={{ color: "#dc2626", fontSize: "12px", flexShrink: 0, marginTop: "1px" }}>✗</span>
+                          <span style={{ fontSize: "12px", color: "#333", lineHeight: "1.4" }}>{item}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Inline theme switcher */}
             <div style={{ display: "flex", gap: "6px", marginBottom: "16px", flexWrap: "wrap" }}>
               {THEMES.map((t) => (

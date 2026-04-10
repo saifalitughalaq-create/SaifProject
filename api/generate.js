@@ -1,20 +1,37 @@
 export const maxDuration = 60;
 
 function stripMarkdown(text) {
-  // Remove code fences: ```text ... ``` or ```plaintext ... ``` etc.
   return text.replace(/^```[^\n]*\n([\s\S]*?)```$/m, "$1").trim();
 }
 
-function parseResume(raw) {
+function parseOutput(raw) {
   const text = stripMarkdown(raw);
   const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
-  const result = { name: "", contact: "", summary: "", skills: [], experience: [], education: [] };
+
+  const result = {
+    matchScore: 0,
+    covered: [],
+    gaps: [],
+    name: "",
+    contact: "",
+    summary: "",
+    skills: [],
+    experience: [],
+    education: [],
+  };
+
   let currentEntry = null;
   let summaryLines = [];
   let inSummary = false;
 
   for (const line of lines) {
-    if (line.startsWith("NAME:")) {
+    if (line.startsWith("MATCH_SCORE:")) {
+      result.matchScore = parseInt(line.slice(12).trim(), 10) || 0;
+    } else if (line.startsWith("COVERED:")) {
+      result.covered = line.slice(8).split("|").map(s => s.trim()).filter(Boolean);
+    } else if (line.startsWith("GAPS:")) {
+      result.gaps = line.slice(5).split("|").map(s => s.trim()).filter(Boolean);
+    } else if (line.startsWith("NAME:")) {
       result.name = line.slice(5).trim();
       inSummary = false;
     } else if (line.startsWith("CONTACT:")) {
@@ -46,8 +63,7 @@ function parseResume(raw) {
     } else if (line.startsWith("BULLET:") && currentEntry) {
       inSummary = false;
       currentEntry.bullets.push(line.slice(7).trim());
-    } else if (inSummary && !line.includes(":")) {
-      // Continuation of summary on next line
+    } else if (inSummary && !line.match(/^[A-Z_]{3,}:/)) {
       summaryLines.push(line);
     }
   }
@@ -65,40 +81,44 @@ export default async function handler(req, res) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "API key not configured" });
 
-  const prompt = `TASK: Rewrite the resume to better match the job description language. Do NOT analyze or review. Output only the rewritten resume in the exact format below.
+  const prompt = `You are a professional resume analyst and rewriter. Do the following in order:
 
-DO NOT write: "Verdict", "Match", "Score", "Analysis", "Here is", "Based on", or any commentary.
-START your response with: NAME:
+STEP 1 — Analyze the job description and extract:
+- Every specific responsibility listed
+- Every required skill, tool, or qualification
+- Key action verbs and terminology used
 
-STEP 1 — Read the resume and note:
-- What tools and software are actually mentioned (e.g. SAP, Excel, specific systems)
-- What tasks and responsibilities are described
-- What metrics and numbers appear
+STEP 2 — Analyze the resume and for each JD requirement determine:
+- COVERED: the person genuinely has this experience (from their resume)
+- GAP: the person does not have this, or it is not mentioned in their resume
 
-STEP 2 — Rewrite following these rules:
-- ONLY include tools, skills, and software that appear in the resume from Step 1
-- If SAP is NOT in the resume, do NOT add SAP. If Excel is NOT in the resume, do NOT add Excel.
-- ONLY use metrics and numbers that already exist in the resume — do not invent percentages
-- Rephrase each bullet using the job description's vocabulary to describe what the person already did
-- Keep all names, job titles, companies, dates, and education exactly as in the original
-- Write the summary connecting the person's real background to this role
+STEP 3 — Rewrite the resume:
+- Rephrase bullets to use the JD's exact vocabulary for things the person already did
+- Do NOT add any skill, tool, software, or metric not present in the original resume
+- Do NOT invent SAP, ARIBA, Excel, or any tool unless it appears in the resume
+- Keep all names, job titles, companies, dates, education exactly as-is
+- Each bullet: action verb + JD keyword + real metric from resume
+- Summary: connect their real background to this role using JD language
 
-EXACT OUTPUT FORMAT:
-NAME: [full name from resume]
-CONTACT: [contact info from resume]
-SUMMARY: [3 sentences using job description language to describe their real experience]
-SKILLS: [only skills/tools that appear in the original resume, comma-separated]
-JOB: [job title] | [company] | [location] | [dates]
-BULLET: [reworded bullet — same fact, job description language, action verb first]
-BULLET: [reworded bullet — same fact, job description language, action verb first]
-BULLET: [reworded bullet — same fact, job description language, action verb first]
-BULLET: [reworded bullet — same fact, job description language, action verb first]
-BULLET: [reworded bullet — same fact, job description language, action verb first]
-BULLET: [reworded bullet — same fact, job description language, action verb first]
-(repeat JOB + BULLET blocks for every position in the resume)
+OUTPUT — use this exact format, no extra text, no markdown:
+MATCH_SCORE: [0-100 integer: what % of JD requirements this resume genuinely covers]
+COVERED: [requirement1 | requirement2 | requirement3 | ...all covered items]
+GAPS: [gap1 | gap2 | gap3 | ...all genuine gaps]
+NAME: [from resume]
+CONTACT: [from resume]
+SUMMARY: [3 sentences using JD language to describe their real experience]
+SKILLS: [only skills present in original resume, comma-separated]
+JOB: [title] | [company] | [location] | [dates]
+BULLET: [reworded — same fact, JD language, action verb]
+BULLET: [reworded — same fact, JD language, action verb]
+BULLET: [reworded — same fact, JD language, action verb]
+BULLET: [reworded — same fact, JD language, action verb]
+BULLET: [reworded — same fact, JD language, action verb]
+BULLET: [reworded — same fact, JD language, action verb]
+(repeat JOB + BULLET for every position in the resume)
 EDU: [degree] | [school] | [location] | [year]
-BULLET: [real education achievement]
-BULLET: [real education achievement]
+BULLET: [real achievement]
+BULLET: [real achievement]
 
 ---
 RESUME:
@@ -109,10 +129,10 @@ JOB DESCRIPTION:
 ${jobDescription}
 
 ---
-BEGIN OUTPUT (start with NAME:):`;
+START OUTPUT (first line must be MATCH_SCORE:):`;
 
   const MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "llama3-8b-8192"];
-  const systemPrompt = "You are a resume rewriter. Your only job is to rewrite the resume in the exact plain-text format the user provides. Never analyze, score, or review. Never add commentary, preamble, or markdown. Your output must start with NAME: and contain only the formatted resume lines.";
+  const systemPrompt = "You are a resume analyst and rewriter. Follow the output format exactly. Never fabricate skills, tools, or metrics not in the original resume. Output plain text only — no markdown, no preamble.";
 
   let data = null;
   let lastError = null;
@@ -127,7 +147,7 @@ BEGIN OUTPUT (start with NAME:):`;
           { role: "system", content: systemPrompt },
           { role: "user", content: prompt }
         ],
-        temperature: 0.3,
+        temperature: 0.2,
         max_tokens: 4096,
       }),
     });
@@ -140,7 +160,6 @@ BEGIN OUTPUT (start with NAME:):`;
     const err = await groqRes.json().catch(() => ({}));
     lastError = err?.error?.message || `Model ${model} failed`;
 
-    // Continue to next model on rate limit or decommissioned model errors
     const isRetryable = groqRes.status === 429 ||
       (lastError && (lastError.includes("decommissioned") || lastError.includes("no longer supported") || lastError.includes("not found")));
     if (!isRetryable) {
@@ -151,16 +170,14 @@ BEGIN OUTPUT (start with NAME:):`;
   if (!data) {
     return res.status(429).json({ error: "All models are rate limited. Please try again in a few minutes." });
   }
+
   const text = (data.choices?.[0]?.message?.content || "").trim();
+  if (!text) return res.status(500).json({ error: "No response from AI" });
 
-  if (!text) {
-    return res.status(500).json({ error: "No response from AI" });
-  }
-
-  const parsed = parseResume(text);
+  const parsed = parseOutput(text);
   if (!parsed.name) {
-    // Return raw text snippet to help debug
     return res.status(500).json({ error: `Could not parse output. Raw start: ${text.slice(0, 300)}` });
   }
+
   return res.status(200).json(parsed);
 }
