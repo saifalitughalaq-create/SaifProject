@@ -14,25 +14,18 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "API key not configured on server" });
   }
 
-  const prompt = `You are a professional resume writer. Rewrite the candidate's resume to be STRONGLY tailored to the job description below. Do NOT copy bullets verbatim — rewrite and reframe every bullet to mirror the job description's language, keywords, and priorities. The result must read like it was written specifically for this job.
+  const prompt = `Rewrite this resume tailored to the job description. Use the job description's exact keywords. Rewrite every bullet — do not copy from the resume.
 
-BASE RESUME:
+RESUME:
 ${resumeText}
 
-JOB DESCRIPTION:
+JOB:
 ${jobDescription}
 
-INSTRUCTIONS:
-- Rewrite the professional summary to directly target this specific role and company
-- Rewrite every bullet point to use keywords and phrases from the job description
-- Quantify achievements with numbers/percentages wherever possible
-- Add extra bullets to each role (7-8 bullets per job) to fill a 2-page resume
-- Include 12-15 skills that match the job description requirements
-- If the job mentions specific tools, software, or methodologies — include them if the candidate has relevant experience
-- No em dashes, no fluff, every word must add value
+Rules: tailor summary to this role, rewrite bullets with job keywords, quantify where possible, 10 skills max, 5 bullets per role, no em dashes.
 
-Reply with ONLY this JSON structure filled in (no markdown, no explanation, no extra text):
-{"name":"","contact":"","summary":"","skills":["","","","","","","","","","","",""],"experience":[{"title":"","company":"","bullets":["","","","","","","",""]}],"education":[{"degree":"","school":"","bullets":["",""]}]}`;
+Respond with ONLY valid JSON:
+{"name":"","contact":"","summary":"","skills":[],"experience":[{"title":"","company":"","bullets":[]}],"education":[{"degree":"","school":"","bullets":[]}]}`;
 
   const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
@@ -50,7 +43,7 @@ Reply with ONLY this JSON structure filled in (no markdown, no explanation, no e
         { role: "user", content: prompt }
       ],
       temperature: 0.3,
-      max_tokens: 8192,
+      max_tokens: 4096,
     }),
   });
 
