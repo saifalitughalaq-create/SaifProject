@@ -65,34 +65,41 @@ export default async function handler(req, res) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "API key not configured" });
 
-  const prompt = `TASK: Rewrite the resume below so it perfectly targets the job description. Do NOT analyze, score, or review anything. Your entire response must be the rewritten resume in the exact format shown.
+  const prompt = `TASK: Rewrite the resume below to better target the job description. Do NOT analyze, score, or review. Your entire response must be the rewritten resume in the exact format shown.
 
 DO NOT write: "Verdict", "Match", "Score", "Analysis", "Here is", "Based on", or any commentary.
 START your response with: NAME:
 
+TRUTHFULNESS RULES (most important):
+- NEVER invent skills, tools, software, or experiences that are not in the original resume
+- NEVER add SAP, ARIBA, Excel, or any specific tool unless it already appears in the resume
+- NEVER fabricate metrics — only use numbers that exist in the original resume
+- You may only rephrase and reframe what is already there, using job description language
+
 REWRITING RULES:
-- Copy the person's name, contact info, job titles, companies, dates, and education from the original resume
-- Rewrite every bullet point using the job description's exact keywords and language
-- Each bullet must begin with an action verb and include a quantified result (%, $, time saved, etc.)
-- Write the summary using keywords directly from the job description
-- List skills that appear in the job description
+- Keep name, contact info, job titles, companies, dates, and education exactly as in the original
+- Rephrase each bullet to emphasize the aspects most relevant to the job description
+- Use the job description's vocabulary and keywords to describe what the person already did
+- Each bullet must begin with a strong action verb
+- For SKILLS: only list skills that genuinely appear in the original resume; you may phrase them using job description terms if equivalent
+- Write the summary to connect the person's real background to this specific role
 
 EXACT OUTPUT FORMAT — follow this precisely:
 NAME: [person's full name from resume]
 CONTACT: [their contact info from resume]
-SUMMARY: [3-sentence summary using job description keywords]
-SKILLS: [12 skills, comma-separated, matching job description terms]
+SUMMARY: [3-sentence summary connecting their real experience to this job]
+SKILLS: [skills only from the original resume, comma-separated]
 JOB: [their job title] | [company] | [location] | [dates]
-BULLET: [rewritten bullet — action verb + job keyword + metric]
-BULLET: [rewritten bullet — action verb + job keyword + metric]
-BULLET: [rewritten bullet — action verb + job keyword + metric]
-BULLET: [rewritten bullet — action verb + job keyword + metric]
-BULLET: [rewritten bullet — action verb + job keyword + metric]
-BULLET: [rewritten bullet — action verb + job keyword + metric]
+BULLET: [rewritten bullet using job keywords — only facts from the original]
+BULLET: [rewritten bullet using job keywords — only facts from the original]
+BULLET: [rewritten bullet using job keywords — only facts from the original]
+BULLET: [rewritten bullet using job keywords — only facts from the original]
+BULLET: [rewritten bullet using job keywords — only facts from the original]
+BULLET: [rewritten bullet using job keywords — only facts from the original]
 (repeat JOB and BULLET lines for every job in the resume)
 EDU: [degree] | [school] | [location] | [year]
-BULLET: [achievement relevant to the job]
-BULLET: [achievement relevant to the job]
+BULLET: [real academic achievement relevant to the job]
+BULLET: [real academic achievement relevant to the job]
 
 ---
 RESUME TO REWRITE:
