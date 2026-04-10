@@ -107,65 +107,19 @@ const THEMES = [
 
 const STEPS = ["Resume", "Job Description", "Theme", "Generate"];
 
-const generateResume = async (apiKey, resumeText, jobDescription) => {
-  const prompt = `You are an expert resume writer. Analyze this resume and job description, then generate a perfectly tailored resume.
-
-BASE RESUME:
-${resumeText}
-
-JOB DESCRIPTION:
-${jobDescription}
-
-Generate a tailored resume as a JSON object with this exact structure:
-{
-  "name": "Full Name",
-  "contact": "City, Province | Phone | Email | LinkedIn",
-  "summary": "2-3 sentence professional summary tailored to the job",
-  "skills": ["skill1", "skill2", "skill3", "skill4", "skill5", "skill6", "skill7", "skill8"],
-  "experience": [
-    {
-      "title": "Job Title",
-      "company": "Company Name | Location | Dates",
-      "bullets": ["bullet1", "bullet2", "bullet3", "bullet4", "bullet5"]
-    }
-  ],
-  "education": [
-    {
-      "degree": "Degree Name",
-      "school": "School Name | Location | Dates",
-      "bullets": ["bullet1", "bullet2"]
-    }
-  ]
-}
-
-Rules:
-- Mirror the job description language in bullets
-- Quantify achievements where possible
-- Keep bullets concise and impactful
-- No em dashes
-- Return ONLY the JSON, no other text`;
-
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.4, maxOutputTokens: 2048 },
-      }),
-    }
-  );
+const generateResume = async (resumeText, jobDescription) => {
+  const response = await fetch("/api/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ resumeText, jobDescription }),
+  });
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
-    throw new Error(err?.error?.message || `API error ${response.status}`);
+    throw new Error(err?.error || `Server error ${response.status}`);
   }
 
-  const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-  const clean = text.replace(/```json|```/g, "").trim();
-  return JSON.parse(clean);
+  return response.json();
 };
 
 const ResumePreview = ({ data, theme }) => {
@@ -222,7 +176,6 @@ const ResumePreview = ({ data, theme }) => {
 
 export default function App() {
   const [step, setStep] = useState(0);
-  const [apiKey, setApiKey] = useState("");
   const [resumeText, setResumeText] = useState("");
   const [jobDesc, setJobDesc] = useState("");
   const [selectedTheme, setSelectedTheme] = useState(THEMES[0]);
@@ -250,11 +203,11 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
-      const result = await generateResume(apiKey, resumeText, jobDesc);
+      const result = await generateResume(resumeText, jobDesc);
       setGenerated(result);
       setStep(4);
     } catch (err) {
-      setError(err.message || "Generation failed. Please check your API key and try again.");
+      setError(err.message || "Generation failed. Please try again.");
     }
     setLoading(false);
   };
@@ -348,24 +301,6 @@ export default function App() {
       {/* Main */}
       <div style={{ maxWidth: step === 4 ? "860px" : "640px", margin: "0 auto", padding: "40px 24px 80px" }}>
 
-        {/* API Key Banner (always visible until key set) */}
-        {!apiKey && step < 4 && (
-          <div style={{ background: "#fff", border: "1px solid #e0e0e0", borderRadius: "8px", padding: "16px 20px", marginBottom: "28px" }}>
-            <div style={{ fontSize: "13px", fontWeight: "600", marginBottom: "8px" }}>Google Gemini API Key <span style={{ fontWeight: "400", color: "#888" }}>(free)</span></div>
-            <div style={{ display: "flex", gap: "8px" }}>
-              <input
-                type="password"
-                placeholder="AIza..."
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                style={{ flex: 1 }}
-              />
-            </div>
-            <div style={{ fontSize: "11px", color: "#999", marginTop: "8px" }}>
-              Get a free key at <strong>aistudio.google.com</strong> — no credit card required. Key stays in your browser only.
-            </div>
-          </div>
-        )}
 
         {/* STEP 0: Upload Resume */}
         {step === 0 && (
@@ -397,7 +332,7 @@ export default function App() {
             <textarea rows={14} value={resumeText} onChange={(e) => setResumeText(e.target.value)} placeholder="Paste your full resume here..." />
 
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px" }}>
-              <button className="btn-primary" onClick={() => setStep(1)} disabled={!canNext() || !apiKey}>
+              <button className="btn-primary" onClick={() => setStep(1)} disabled={!canNext()}>
                 Continue →
               </button>
             </div>
@@ -539,7 +474,7 @@ export default function App() {
             </div>
 
             <div style={{ display: "flex", justifyContent: "center", marginTop: "28px" }}>
-              <button className="btn-ghost" onClick={() => { setStep(0); setGenerated(null); setResumeText(""); setJobDesc(""); setApiKey(""); }}>
+              <button className="btn-ghost" onClick={() => { setStep(0); setGenerated(null); setResumeText(""); setJobDesc(""); }}>
                 Start Over
               </button>
             </div>
