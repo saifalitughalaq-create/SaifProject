@@ -216,84 +216,86 @@ export default function App() {
     if (file) handleFile(file);
   }, []);
 
+  const buildThemeFromColors = (bgHex, textHex, accentHex) => {
+    const toRgb = h => ({ r: parseInt(h.slice(1,3),16), g: parseInt(h.slice(3,5),16), b: parseInt(h.slice(5,7),16) });
+    const lum = ({r,g,b}) => (0.299*r + 0.587*g + 0.114*b)/255;
+    const acc = toRgb(accentHex);
+    const isDark = lum(toRgb(bgHex)) < 0.4;
+    const hue = Math.atan2(Math.sqrt(3)*(acc.g-acc.b), 2*acc.r-acc.g-acc.b)*180/Math.PI;
+    const isWarm = hue > -30 && hue < 90;
+    const font = isWarm ? "'Georgia', serif" : "'Helvetica Neue', Helvetica, sans-serif";
+    const muted = textHex + "99";
+    const a38 = accentHex + "38";
+    const a70 = accentHex + "70";
+    const bodyText = isDark ? "#c8c0b0" : "#444444";
+    return {
+      id: "custom", name: "Custom", desc: "Matched from your image",
+      preview: { bg: bgHex, accent: accentHex, text: textHex },
+      styles: {
+        page: { background: bgHex, color: textHex, fontFamily: font, padding: "48px 56px", minHeight: "560mm" },
+        name: { fontSize: "30px", fontWeight: "700", color: accentHex, letterSpacing: "2px", textTransform: "uppercase", marginBottom: "4px" },
+        contact: { fontSize: "11px", color: muted, letterSpacing: "1px", marginBottom: "28px" },
+        sectionTitle: { fontSize: "10px", fontWeight: "700", color: accentHex, letterSpacing: "3px", textTransform: "uppercase", borderBottom: `1px solid ${a70}`, paddingBottom: "6px", marginBottom: "14px", marginTop: "28px" },
+        jobTitle: { fontSize: "14px", fontWeight: "700", color: textHex },
+        company: { fontSize: "12px", color: muted, fontStyle: "italic", marginBottom: "8px" },
+        bullet: { fontSize: "12px", color: bodyText, lineHeight: "1.7", marginBottom: "4px", paddingLeft: "14px", position: "relative" },
+        summary: { fontSize: "13px", color: bodyText, lineHeight: "1.8" },
+        skillTag: { background: a38, border: `1px solid ${a70}`, color: accentHex, fontSize: "10px", padding: "3px 10px", borderRadius: "3px", letterSpacing: "0.5px" },
+      },
+    };
+  };
+
   const extractThemeFromImage = (file) => new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
       try {
-        const SIZE = 180;
+        const SIZE = 300;
         const canvas = document.createElement("canvas");
         const scale = Math.min(SIZE / img.width, SIZE / img.height);
-        canvas.width = Math.floor(img.width * scale);
-        canvas.height = Math.floor(img.height * scale);
+        const W = Math.floor(img.width * scale);
+        const H = Math.floor(img.height * scale);
+        canvas.width = W; canvas.height = H;
         const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, W, H);
 
-        const buckets = {};
-        for (let i = 0; i < data.length; i += 4) {
-          if (data[i + 3] < 128) continue; // skip transparent
-          const r = Math.round(data[i] / 16) * 16;
-          const g = Math.round(data[i + 1] / 16) * 16;
-          const b = Math.round(data[i + 2] / 16) * 16;
-          const k = `${r},${g},${b}`;
-          buckets[k] = (buckets[k] || 0) + 1;
-        }
+        const toHex = (r,g,b) => "#"+[r,g,b].map(v=>v.toString(16).padStart(2,"0")).join("");
+        const lum = (r,g,b) => (0.299*r+0.587*g+0.114*b)/255;
+        const sat = (r,g,b) => { const mx=Math.max(r,g,b),mn=Math.min(r,g,b); return mx===0?0:(mx-mn)/mx; };
 
-        const toHex = (r, g, b) => "#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join("");
-        const luminance = (r, g, b) => (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-        const saturation = (r, g, b) => {
-          const max = Math.max(r, g, b), min = Math.min(r, g, b);
-          return max === 0 ? 0 : (max - min) / max;
+        const getBuckets = (imageData) => {
+          const bk = {};
+          for (let i=0; i<imageData.data.length; i+=4) {
+            if (imageData.data[i+3]<128) continue;
+            const r=Math.round(imageData.data[i]/8)*8,
+                  g=Math.round(imageData.data[i+1]/8)*8,
+                  b=Math.round(imageData.data[i+2]/8)*8;
+            const k=`${r},${g},${b}`; bk[k]=(bk[k]||0)+1;
+          }
+          return Object.entries(bk)
+            .map(([k,count])=>{ const [r,g,b]=k.split(",").map(Number); return {r,g,b,count,lum:lum(r,g,b),sat:sat(r,g,b)}; })
+            .sort((a,b)=>b.count-a.count);
         };
 
-        const entries = Object.entries(buckets)
-          .map(([k, count]) => { const [r, g, b] = k.split(",").map(Number); return { r, g, b, count, lum: luminance(r, g, b), sat: saturation(r, g, b) }; })
-          .sort((a, b) => b.count - a.count);
+        // Sample full image for bg + text
+        const allEntries = getBuckets(ctx.getImageData(0, 0, W, H));
+        // Sample top 30% of image — this is where name/header accent usually lives
+        const headerEntries = getBuckets(ctx.getImageData(0, 0, W, Math.floor(H*0.3)));
+        // Sample left 20% strip — often a sidebar with accent color
+        const sideEntries = getBuckets(ctx.getImageData(0, 0, Math.floor(W*0.2), H));
 
-        // Background: most common very-light color
-        const bg = entries.find(c => c.lum > 0.82) || { r: 255, g: 255, b: 255 };
-        // Text: most common very-dark color
-        const textCol = entries.find(c => c.lum < 0.25) || { r: 30, g: 30, b: 30 };
-        // Accent: most saturated non-neutral color (sat > 0.25)
-        const accentCandidates = entries.filter(c => c.sat > 0.25 && c.lum > 0.1 && c.lum < 0.85);
-        const accent = accentCandidates.sort((a, b) => (b.sat * b.count) - (a.sat * a.count))[0]
-          || { r: 50, g: 80, b: 160 };
+        const bg = allEntries.find(c=>c.lum>0.80) || {r:255,g:255,b:255};
+        const textCol = allEntries.find(c=>c.lum<0.22) || {r:30,g:30,b:30};
 
-        const bgHex = toHex(bg.r, bg.g, bg.b);
-        const textHex = toHex(textCol.r, textCol.g, textCol.b);
-        const accentHex = toHex(accent.r, accent.g, accent.b);
-        const isDark = luminance(bg.r, bg.g, bg.b) < 0.4;
+        // Look for accent in header first, then sidebar, then full image
+        const findAccent = (entries) => {
+          const cands = entries.filter(c=>c.sat>0.2&&c.lum>0.08&&c.lum<0.9&&c.count>2);
+          return cands.sort((a,b)=>(b.sat*Math.sqrt(b.count))-(a.sat*Math.sqrt(a.count)))[0];
+        };
+        const accent = findAccent(headerEntries) || findAccent(sideEntries) || findAccent(allEntries) || {r:50,g:80,b:160};
 
-        // Pick font based on accent hue
-        const hue = Math.atan2(
-          Math.sqrt(3) * (accent.g - accent.b),
-          2 * accent.r - accent.g - accent.b
-        ) * 180 / Math.PI;
-        const isWarm = hue > -30 && hue < 90; // reds, oranges, golds
-        const fontFamily = isWarm ? "'Georgia', serif" : "'Helvetica Neue', Helvetica, sans-serif";
-
-        const alpha22 = accentHex + "38";
-        const alpha44 = accentHex + "70";
-
-        resolve({
-          id: "custom",
-          name: "Custom",
-          desc: "Matched from your image",
-          preview: { bg: bgHex, accent: accentHex, text: textHex },
-          styles: {
-            page: { background: bgHex, color: textHex, fontFamily, padding: "48px 56px", minHeight: "560mm" },
-            name: { fontSize: "30px", fontWeight: "700", color: accentHex, letterSpacing: "2px", textTransform: "uppercase", marginBottom: "4px" },
-            contact: { fontSize: "11px", color: textHex + "aa", letterSpacing: "1px", marginBottom: "28px" },
-            sectionTitle: { fontSize: "10px", fontWeight: "700", color: accentHex, letterSpacing: "3px", textTransform: "uppercase", borderBottom: `1px solid ${alpha44}`, paddingBottom: "6px", marginBottom: "14px", marginTop: "28px" },
-            jobTitle: { fontSize: "14px", fontWeight: "700", color: textHex },
-            company: { fontSize: "12px", color: textHex + "99", fontStyle: "italic", marginBottom: "8px" },
-            bullet: { fontSize: "12px", color: isDark ? "#c8c0b0" : "#444444", lineHeight: "1.7", marginBottom: "4px", paddingLeft: "14px", position: "relative" },
-            summary: { fontSize: "13px", color: isDark ? "#c8c0b0" : "#555555", lineHeight: "1.8" },
-            skillTag: { background: alpha22, border: `1px solid ${alpha44}`, color: accentHex, fontSize: "10px", padding: "3px 10px", borderRadius: "3px", letterSpacing: "0.5px" },
-          },
-        });
-      } catch (e) { reject(e); }
+        resolve(buildThemeFromColors(toHex(bg.r,bg.g,bg.b), toHex(textCol.r,textCol.g,textCol.b), toHex(accent.r,accent.g,accent.b)));
+      } catch(e) { reject(e); }
       URL.revokeObjectURL(url);
     };
     img.onerror = () => reject(new Error("Could not read image"));
@@ -517,11 +519,38 @@ export default function App() {
                       <div style={{ fontSize: "12px", color: "#888" }}>Analyzing design...</div>
                     </div>
                   ) : customTheme ? (
-                    <div>
-                      <div style={{ fontWeight: "600", fontSize: "13px", marginBottom: "3px" }}>Custom theme extracted</div>
-                      <div style={{ fontSize: "11px", color: "#888", marginBottom: "6px" }}>Colors, fonts, and layout detected from your image</div>
+                    <div style={{ flex: 1 }} onClick={e => e.stopPropagation()}>
+                      <div style={{ fontWeight: "600", fontSize: "13px", marginBottom: "8px" }}>
+                        {selectedTheme.id === "custom" ? "✓ Custom theme active" : "Custom theme extracted"}
+                      </div>
+                      {/* Color fine-tune pickers */}
+                      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "8px" }}>
+                        {[
+                          { label: "Background", key: "bg" },
+                          { label: "Text", key: "text" },
+                          { label: "Accent", key: "accent" },
+                        ].map(({ label, key }) => (
+                          <label key={key} style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
+                            <input
+                              type="color"
+                              value={customTheme.preview[key]}
+                              onChange={e => {
+                                const updated = buildThemeFromColors(
+                                  key === "bg" ? e.target.value : customTheme.preview.bg,
+                                  key === "text" ? e.target.value : customTheme.preview.text,
+                                  key === "accent" ? e.target.value : customTheme.preview.accent,
+                                );
+                                setCustomTheme(updated);
+                                setSelectedTheme(updated);
+                              }}
+                              style={{ width: "24px", height: "24px", border: "none", borderRadius: "4px", cursor: "pointer", padding: "1px" }}
+                            />
+                            <span style={{ fontSize: "11px", color: "#555" }}>{label}</span>
+                          </label>
+                        ))}
+                      </div>
                       <button
-                        onClick={(e) => { e.stopPropagation(); setSelectedTheme(customTheme); }}
+                        onClick={() => setSelectedTheme(customTheme)}
                         style={{
                           fontSize: "11px", padding: "3px 10px", borderRadius: "4px", cursor: "pointer",
                           border: `1px solid ${selectedTheme.id === "custom" ? "#1a1a1a" : "#d0d0d0"}`,
