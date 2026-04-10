@@ -1,6 +1,25 @@
-import { jsonrepair } from "jsonrepair";
-
 export const maxDuration = 60;
+
+// Balances unclosed brackets/braces in LLM JSON output
+function balanceJSON(str) {
+  const stack = [];
+  let inString = false;
+  let escape = false;
+
+  for (const ch of str) {
+    if (escape) { escape = false; continue; }
+    if (ch === "\\" && inString) { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (!inString) {
+      if (ch === "{") stack.push("}");
+      else if (ch === "[") stack.push("]");
+      else if (ch === "}" || ch === "]") stack.pop();
+    }
+  }
+
+  // Close any unclosed structures
+  return str + stack.reverse().join("");
+}
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -51,9 +70,9 @@ Your job is to TRANSFORM a resume to match a job description:
 - List only skills that appear in or are relevant to the job description
 - Quantify results (numbers, %, $) wherever the original hints at measurable work
 - If the original says "helped with invoices" and the job says "AP/AR processing" — write "Processed AP/AR transactions..."
-- Make the candidate look like a perfect match for this specific job`
+- Make the candidate look like a perfect match for this specific job`,
         },
-        { role: "user", content: prompt }
+        { role: "user", content: prompt },
       ],
       temperature: 0.4,
       max_tokens: 4096,
@@ -73,16 +92,23 @@ Your job is to TRANSFORM a resume to match a job description:
   // Strip markdown fences
   const stripped = text.replace(/^```(?:json)?|```$/gm, "").trim();
 
-  // Try direct parse first
+  // 1. Try direct parse
+  try { return res.status(200).json(JSON.parse(stripped)); } catch {}
+
+  // 2. Try balancing unclosed brackets (most common LLM issue)
   try {
-    return res.status(200).json(JSON.parse(stripped));
+    const balanced = balanceJSON(stripped);
+    return res.status(200).json(JSON.parse(balanced));
   } catch {}
 
-  // Use jsonrepair to fix malformed JSON (unescaped chars, trailing commas, etc.)
-  try {
-    const repaired = jsonrepair(stripped);
-    return res.status(200).json(JSON.parse(repaired));
-  } catch {}
+  // 3. Extract largest {...} block and balance it
+  const match = stripped.match(/\{[\s\S]*/);
+  if (match) {
+    try {
+      const balanced = balanceJSON(match[0]);
+      return res.status(200).json(JSON.parse(balanced));
+    } catch {}
+  }
 
   return res.status(500).json({ error: `Could not parse response. End: ${stripped.slice(-150)}` });
 }
