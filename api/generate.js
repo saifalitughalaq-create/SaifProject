@@ -110,18 +110,18 @@ export default async function handler(req, res) {
 6. Never fabricate metrics, specific numbers, or credentials that take years to earn (degrees, CPA, PEng, etc.)
 7. Past resume versions — if a past resume contains a real job role more relevant to this JD than the current resume, include that role in the output. Always pick the most JD-relevant real job entries from across all provided resumes. Never fabricate a job — only use roles that exist in one of the provided resumes.
 
-━━━ PERMITTED ADDITIONS (skills only — not job entries) ━━━
-A. Short-term learnable tools (3-6 months) required by the JD, when the person has relevant background:
-   Finance/accounting: Excel, Google Sheets, QuickBooks, Sage, SAP basics, Canadian GAAP, GST/HST, bank reconciliation tools
-   Sales/marketing: Salesforce basics, HubSpot, Google Analytics, Mailchimp, Meta Ads
-   Operations/supply chain: SAP basics, ERP fundamentals, inventory management, WMS basics
-   Admin/coordinator: MS Office Suite, Google Workspace, Asana, Trello, Outlook, Teams
-   Any office role: Zoom, process documentation, basic reporting, data entry systems
+━━━ PERMITTED SKILL ADDITIONS (Skills section only — not experience bullets) ━━━
+You may add the following to the Skills section even if not explicitly in the resume:
 
-B. Interchangeable tools — if person knows one, they can use the other:
+A. Easily acquirable tools and software (learnable in days to months) if required by the JD:
+   MS Excel, Google Sheets, ERP systems, QuickBooks, Sage, Xero, SAP basics, FreshBooks
+   MS Office Suite, Google Workspace, Outlook, Teams, Zoom, Asana, Trello, Slack
+   Salesforce basics, HubSpot, Google Analytics, Mailchimp
+   Canadian GAAP, GST/HST, bank reconciliation tools, basic bookkeeping software
+
+B. Interchangeable tools — if person knows one, add the JD's equivalent:
    QuickBooks ↔ Sage ↔ Xero ↔ FreshBooks | Excel ↔ Google Sheets | SAP ↔ Oracle ↔ Dynamics ↔ NetSuite
-   Salesforce ↔ HubSpot ↔ Zoho | Jira ↔ Asana ↔ Trello ↔ Monday | Slack ↔ Teams ↔ Google Chat
-   → If JD requires a tool from a family the person knows, include the JD's term in their skills
+   Salesforce ↔ HubSpot ↔ Zoho | Jira ↔ Asana ↔ Trello ↔ Monday | Slack ↔ Teams
 
 C. Every skill, tool, and certification from ANY past resume version
 
