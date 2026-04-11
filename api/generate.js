@@ -134,11 +134,21 @@ D. Every skill, tool, and certification from ANY past resume version
 5. True gaps (multi-year skills, hard credentials) → GAPS list + honest REASON
 
 ━━━ SKILLS SECTION RULES ━━━
-INCLUDE: specific software, tools, platforms, technical methodologies, certifications
-   Good examples: QuickBooks, SAP ERP, Excel, Canadian GAAP, GST/HST, Salesforce, Google Analytics
-EXCLUDE: soft skills, personality traits, generic descriptors, action phrases
-   Never include: "strong communication skills", "detail-oriented", "team player", "ability to work independently", "excellent organizational skills", "understanding of accounting principles" — these belong in bullets, not skills
-The skills section must read as a clean scannable list of hard skills — nothing abstract, nothing vague
+The skills section is driven by the JD — only include what the JD actually cares about.
+
+ALWAYS INCLUDE: technical skills, software, tools, platforms, certifications, methodologies that appear in or are relevant to the JD
+   Examples: QuickBooks, SAP ERP, Advanced Excel, Canadian GAAP, GST/HST compliance, Salesforce, Google Analytics, AutoCAD, Python
+
+INCLUDE ONLY IF THE JD EXPLICITLY REQUIRES IT: soft skills or interpersonal skills
+   Example: if JD says "strong written and verbal communication required" → include "Professional Communication"
+   Example: if JD says "cross-functional collaboration" → include "Cross-functional Collaboration"
+   Use the JD's own phrasing, keep it concise (2-3 words max per soft skill)
+
+NEVER INCLUDE: generic personality traits or abstract phrases not tied to any JD requirement
+   Never: "detail-oriented", "hard worker", "team player", "ability to work independently", "strong work ethic", "excellent organizational skills", "understanding of [broad field]", "committed to accuracy"
+   These are filler — if they matter, they show up naturally in the experience bullets
+
+The result: a tight, JD-targeted list of mostly hard skills with only the soft skills the employer specifically asked for
 
 ━━━ OUTPUT FORMAT — plain text only, no markdown ━━━
 MATCH_SCORE: [0-100]
