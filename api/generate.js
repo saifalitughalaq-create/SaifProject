@@ -141,7 +141,7 @@ WRITING RULES:
 - Every bullet completely rewritten — strong action verb + JD keyword + real context
 - Paraphrase aggressively: the same real work can be described many ways to match JD language
 - Summary: 3 sentences in first person ("I am...", "I have...", "I bring...") using JD vocabulary
-- Skills: full master profile skills + short-learn inferences relevant to this specific JD
+- Skills section: only include skills that (1) are directly relevant to this specific JD and (2) are NOT already mentioned in the summary or any bullet — the skills section should add new keywords, not repeat ones already in the body
 - 5-6 bullets per job, maximally covering JD requirements across all real roles
 
 RECOMMENDATION LOGIC:
@@ -160,7 +160,7 @@ GAPS: [genuine missing requirement | ...]
 NAME: [full name from resume]
 CONTACT: [phone (dashes only, no commas e.g. +1-555-867-5309) | email | LinkedIn URL | City State — use | as separator, never commas between items]
 SUMMARY: [3 sentences in first person — connecting full background + inferred strengths to this role using JD vocabulary]
-SKILLS: [all confirmed + inferred skills relevant to this role, JD terminology preferred, comma-separated]
+SKILLS: [only skills relevant to this JD that do not already appear in the summary or bullets — no duplicates from the resume body, comma-separated]
 JOB: [title] | [company] | [location] | [dates]
 BULLET: [action verb + JD keyword + real or inferred context]
 BULLET: [action verb + JD keyword + real or inferred context]
