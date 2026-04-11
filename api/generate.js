@@ -103,7 +103,10 @@ export default async function handler(req, res) {
 
 CORE RULES:
 - NEVER invent job titles, companies, degrees, years of experience, or specific metrics not stated anywhere
+- NEVER create a new job entry that does not exist in the resume — every JOB line must use a real company and real dates from the resume
+- NEVER use placeholder text like [Company], [Location], [Dates] — if the resume has this info, use it; if genuinely missing, omit that field
 - NEVER claim deep expertise in something requiring years of training unless stated
+- If a JD requirement has no match and cannot be bridged: list it in GAPS and address it honestly in the REASON — do not invent experience to cover it
 - DO use every real skill, tool, and achievement from the current resume and ALL past versions
 - DO apply professional inference for implied skills (see below)
 
@@ -130,8 +133,9 @@ REWRITING APPROACH:
    - COVERED: directly stated in any resume version or clearly inferable
    - BRIDGED: transferable experience that partially addresses it
    - GAP: genuinely absent — not in any version, not inferable
-3. Write bullets using JD language to describe real and inferred experience naturally
-4. Treat inferred skills as real — state them directly without hedging phrases like "familiar with" or "exposure to"
+3. Distribute JD requirements across the person's REAL jobs — add more bullets to existing roles rather than creating new entries
+4. If the gap between the person's background and the JD is significant (RECONSIDER territory), be specific in the REASON about what's missing and why it matters
+5. Treat inferred skills as real — state them directly without hedging phrases like "familiar with" or "exposure to"
 
 WRITING RULES:
 - Every bullet completely rewritten with a strong action verb + JD keyword + context
