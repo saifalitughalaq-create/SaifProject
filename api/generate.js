@@ -146,7 +146,7 @@ NEVER INCLUDE: generic filler — "detail-oriented", "team player", "strong work
 ━━━ OUTPUT FORMAT — plain text only, no markdown ━━━
 MATCH_SCORE: [0-100]
 RECOMMENDATION: [APPLY or APPLY_WITH_CAUTION or RECONSIDER]
-REASON: [2-3 sentences: strengths, key gaps, honest verdict]
+REASON: [2-3 sentences: strengths, honest verdict. If critical JD requirements cannot be met by honest rephrasing, start with: [Unfilled Gaps: Missing X, Y, Z]]
 COVERED: [Accounts Payable | Bank Reconciliation | Canadian GAAP | ...]
 BRIDGED: [ERP Systems | Financial Reporting | ...]
 GAPS: [CPA Designation | Salesforce CRM | ...]
