@@ -369,12 +369,18 @@ async function incFirestoreCount(uid) {
 
 async function saveResumeToHistory(uid, text) {
   const snap = await getDoc(doc(db, "users", uid));
-  const existing = snap.exists() ? (snap.data().resumes || []) : [];
+  const data = snap.exists() ? snap.data() : {};
+  const existing = data.resumes || [];
   const trimmed = text.slice(0, 4000);
-  // Deduplicate — skip if same resume already saved
-  if (existing.length && existing[0].text === trimmed) return;
+
+  // Check similarity — same if first 300 chars match (catches minor whitespace diffs)
+  const isSame = existing.length > 0 && existing[0].text.slice(0, 300) === trimmed.slice(0, 300);
+  if (isSame) return { saved: false, resumeCount: data.resumeCount || existing.length };
+
   const updated = [{ text: trimmed, savedAt: Date.now() }, ...existing].slice(0, 5);
-  await setDoc(doc(db, "users", uid), { resumes: updated }, { merge: true });
+  const resumeCount = (data.resumeCount || 0) + 1;
+  await setDoc(doc(db, "users", uid), { resumes: updated, resumeCount }, { merge: true });
+  return { saved: true, resumeCount };
 }
 
 async function getPastResumes(uid) {
@@ -688,12 +694,12 @@ export default function App() {
 
       // Save resume to history and update count
       if (user) {
-        const [totalGens] = await Promise.all([
+        const [, saveResult] = await Promise.all([
           incFirestoreCount(user.uid),
           saveResumeToHistory(user.uid, resumeText),
         ]);
         setGenCount(currentCount + 1);
-        setSavedToast({ totalGens });
+        setSavedToast(saveResult || { saved: false, resumeCount: 1 });
         setTimeout(() => setSavedToast(null), 4000);
       } else {
         incLocalCount();
@@ -855,11 +861,13 @@ export default function App() {
         }}>
           <span style={{ fontSize: "20px" }}>🧠</span>
           <div>
-            <div style={{ fontWeight: "700", marginBottom: "2px" }}>Resume saved to your memory</div>
+            <div style={{ fontWeight: "700", marginBottom: "2px" }}>
+              {savedToast.saved ? `Resume #${savedToast.resumeCount} saved to memory` : "Same resume detected"}
+            </div>
             <div style={{ fontSize: "11px", color: "#aaa" }}>
-              {savedToast.totalGens === 1
-                ? "Generation #1 saved — AI will build on this next time"
-                : `Generation #${savedToast.totalGens} saved — AI knows you better each time`}
+              {savedToast.saved
+                ? `${savedToast.resumeCount === 1 ? "First version stored" : `${savedToast.resumeCount} unique resumes`} — AI builds on all of them`
+                : "Using your existing memory — update your resume to add more context"}
             </div>
           </div>
         </div>
