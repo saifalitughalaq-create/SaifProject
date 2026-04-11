@@ -121,7 +121,7 @@ REWRITING APPROACH:
 WRITING RULES:
 - Every bullet completely rewritten — no original phrasing kept at all
 - Bullets: strong JD action verb + JD keyword phrase + real metric from resume
-- Summary: 3 sentences connecting real background to this specific role using JD vocabulary
+- Summary: 3 sentences in first person ("I am...", "I have...", "I bring...") connecting real background to this specific role using JD vocabulary
 - Skills: only what exists in the resume, using JD terminology where equivalent
 - 5-6 bullets per job covering as many JD requirements as possible
 
@@ -140,7 +140,7 @@ BRIDGED: [requirement they partially cover | ...]
 GAPS: [genuine missing requirement | ...]
 NAME: [full name from resume]
 CONTACT: [phone (dashes only, no commas e.g. +1-555-867-5309) | email | LinkedIn URL | City State — use | as separator, never commas between items]
-SUMMARY: [3 sentences — rewritten using JD vocabulary, connecting real background to this role]
+SUMMARY: [3 sentences in first person ("I am...", "I have...", "I bring...") — rewritten using JD vocabulary, connecting real background to this role]
 SKILLS: [only skills from original resume, JD terminology preferred, comma-separated]
 JOB: [title] | [company] | [location] | [dates]
 BULLET: [new bullet — JD verb + JD phrase + real metric]
