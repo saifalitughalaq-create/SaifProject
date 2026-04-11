@@ -289,10 +289,11 @@ BEGIN OUTPUT:`;
 
   // 1. Remove fabricated job entries — bracket placeholders only
   parsed.experience = parsed.experience.filter(job => {
-    const company = (job.company || "").toLowerCase();
-    const title   = (job.title   || "").toLowerCase();
-    return !(company.includes("[") || company.includes("]") ||
-             title.includes("[")   || title.includes("]"));
+    // job.company = "Company | Location | Dates" — only check company name, not location/dates
+    const companyName = (job.company || "").split("|")[0].toLowerCase().trim();
+    const title       = (job.title   || "").toLowerCase();
+    return !(companyName.includes("[") || companyName.includes("]") ||
+             title.includes("[")       || title.includes("]"));
   });
 
   // 2. Deduplicate jobs — keep only the first occurrence of each company+title
