@@ -432,10 +432,6 @@ export default function App() {
   const [resumeText, setResumeText] = useState("");
   const [jobDesc, setJobDesc] = useState("");
   const [selectedTheme, setSelectedTheme] = useState(THEMES[0]);
-  const [customTheme, setCustomTheme] = useState(null);
-  const [customThemePreview, setCustomThemePreview] = useState(null);
-  const [customThemeLoading, setCustomThemeLoading] = useState(false);
-  const [customThemeError, setCustomThemeError] = useState(null);
   const [generated, setGenerated] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -447,7 +443,6 @@ export default function App() {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [docxLoading, setDocxLoading] = useState(false);
   const fileRef = useRef();
-  const themeFileRef = useRef();
 
   // Auth listener
   useEffect(() => {
@@ -613,58 +608,6 @@ export default function App() {
     if (file) handleFile(file);
   }, []);
 
-  const buildThemeFromColors = (bgHex, textHex, accentHex, opts = {}) => {
-    const {
-      font = "sans",
-      nameCaps = false,
-      nameItalic = false,
-      nameCentered = false,
-      divider = "underline",
-      skillShape = "box",
-    } = opts;
-
-    const toRgb = h => ({ r: parseInt(h.slice(1,3),16), g: parseInt(h.slice(3,5),16), b: parseInt(h.slice(5,7),16) });
-    const lum = ({r,g,b}) => (0.299*r + 0.587*g + 0.114*b)/255;
-    const isDark = lum(toRgb(bgHex)) < 0.4;
-
-    const fontFamily = font === "serif" ? "'Georgia', 'Cambria', serif"
-      : font === "mono" ? "'Courier New', monospace"
-      : "'Helvetica Neue', Helvetica, Arial, sans-serif";
-
-    const muted = textHex + "99";
-    const a40 = accentHex + "66";
-    const a20 = accentHex + "33";
-    const bodyText = isDark ? "#c8c0b0" : "#444444";
-
-    const sectionBorderBottom = divider === "underline" ? `1px solid ${a40}`
-      : divider === "thick" ? `2px solid ${accentHex}`
-      : "none";
-    const sectionBorderLeft = divider === "leftbar" ? `3px solid ${accentHex}` : "none";
-    const sectionPL = divider === "leftbar" ? "10px" : "0";
-
-    const skillBg     = skillShape === "filled" ? accentHex : skillShape !== "plain" ? a20 : "transparent";
-    const skillColor  = skillShape === "filled" ? "#fff" : accentHex;
-    const skillBorder = skillShape === "plain"  ? "none" : `1px solid ${a40}`;
-    const skillRadius = skillShape === "pill"   ? "20px" : "3px";
-
-    return {
-      id: "custom", name: "Custom", desc: "Matched from your image",
-      preview: { bg: bgHex, accent: accentHex, text: textHex },
-      _opts: { font, nameCaps, nameItalic, nameCentered, divider, skillShape },
-      styles: {
-        page:         { background: bgHex, color: textHex, fontFamily, padding: "48px 56px", minHeight: "560mm" },
-        name:         { fontSize: "30px", fontWeight: "700", color: accentHex, letterSpacing: nameCaps ? "3px" : "0px", textTransform: nameCaps ? "uppercase" : "none", fontStyle: nameItalic ? "italic" : "normal", textAlign: nameCentered ? "center" : "left", marginBottom: "4px" },
-        contact:      { fontSize: "11px", color: muted, letterSpacing: "0.5px", marginBottom: "28px", textAlign: nameCentered ? "center" : "left" },
-        sectionTitle: { fontSize: "10px", fontWeight: "700", color: accentHex, textTransform: "uppercase", letterSpacing: "2px", borderBottom: sectionBorderBottom, borderLeft: sectionBorderLeft, paddingLeft: sectionPL, paddingBottom: divider !== "none" ? "5px" : "0", marginBottom: "12px", marginTop: "26px" },
-        jobTitle:     { fontSize: "14px", fontWeight: "700", color: textHex },
-        company:      { fontSize: "12px", color: muted, fontStyle: "italic", marginBottom: "6px" },
-        bullet:       { fontSize: "12px", color: bodyText, lineHeight: "1.7", marginBottom: "4px", paddingLeft: "14px", position: "relative" },
-        summary:      { fontSize: "12px", color: bodyText, lineHeight: "1.8" },
-        skillTag:     { background: skillBg, color: skillColor, border: skillBorder, fontSize: "10px", padding: "3px 10px", borderRadius: skillRadius, letterSpacing: "0.5px" },
-      },
-    };
-  };
-
   // ── PDF text extraction ───────────────────────────────────────────────────
   const extractTextFromPDF = async (file) => {
     const arrayBuffer = await file.arrayBuffer();
@@ -683,248 +626,6 @@ export default function App() {
       })
     );
     return texts.join("\n");
-  };
-
-  // ── Exact DOCX theme — reads raw XML, builds styles with actual values ─────
-  const extractThemeFromDocx = async (file) => {
-    const { default: JSZip } = await import("jszip");
-    const zip = await JSZip.loadAsync(await file.arrayBuffer());
-
-    // Strip all namespace prefixes so querySelectorAll works without NS magic
-    const strip = (xml) => xml.replace(/[a-zA-Z0-9]+:/g, "");
-    const parse = async (path) => {
-      const f = zip.file(path);
-      return f ? new DOMParser().parseFromString(strip(await f.async("string")), "text/xml") : null;
-    };
-
-    // half-points (Word unit) → px  (1 pt = 1.333 px)
-    const hpToPx = (hp) => Math.round(parseInt(hp || "24") / 2 * 1.333) + "px";
-
-    // hex color from srgbClr / sysClr element
-    const colorOf = (el) => {
-      if (!el) return null;
-      const v = el.querySelector("srgbClr")?.getAttribute("val")
-             || el.querySelector("sysClr")?.getAttribute("lastClr") || "";
-      return v.length === 6 ? "#" + v.toLowerCase() : null;
-    };
-
-    // direct val= attribute on an element (after namespace stripping)
-    const val = (el, attr = "val") => el?.getAttribute(attr) ?? null;
-
-    // ── base colours from theme ─────────────────────────────────────────────
-    let bgColor     = "#ffffff";
-    let bodyColor   = "#1a1a1a";
-    let accentColor = "#2e74b5";
-    let majorFont   = "Calibri Light, Arial, sans-serif";
-    let minorFont   = "Calibri, Arial, sans-serif";
-
-    const themeDoc = await parse("word/theme/theme1.xml") ?? await parse("word/theme/theme.xml");
-    if (themeDoc) {
-      bgColor     = colorOf(themeDoc.querySelector("lt1")) ?? bgColor;
-      bodyColor   = colorOf(themeDoc.querySelector("dk1")) ?? bodyColor;
-      accentColor = colorOf(themeDoc.querySelector("accent1"))
-                 ?? colorOf(themeDoc.querySelector("dk2"))
-                 ?? accentColor;
-      const majT = themeDoc.querySelector("majorFont latin")?.getAttribute("typeface");
-      const minT = themeDoc.querySelector("minorFont latin")?.getAttribute("typeface");
-      if (majT) majorFont = `'${majT}', sans-serif`;
-      if (minT) minorFont = `'${minT}', sans-serif`;
-    }
-
-    // ── parse a style element into rPr / pPr values ──────────────────────────
-    const readStyle = (styleEl) => {
-      if (!styleEl) return {};
-      const rPr = styleEl.querySelector("rPr");
-      const pPr = styleEl.querySelector("pPr");
-
-      const rawColor = val(rPr?.querySelector("color"));
-      const color = rawColor && rawColor !== "auto" && rawColor.length === 6
-        ? "#" + rawColor.toLowerCase() : null;
-
-      const sz   = val(rPr?.querySelector("sz"));          // half-points
-      const szCs = val(rPr?.querySelector("szCs"));
-      const bold  = !!rPr?.querySelector("b");
-      const italic = !!rPr?.querySelector("i");
-      const caps   = !!(rPr?.querySelector("caps") || rPr?.querySelector("smallCaps"));
-      const jc     = val(pPr?.querySelector("jc")) ?? "left";
-      const charSpacing = parseInt(val(rPr?.querySelector("spacing")) ?? "0") / 20; // pt
-
-      // paragraph border → section divider style
-      const pBdr     = pPr?.querySelector("pBdr");
-      const bdrBot   = pBdr?.querySelector("bottom");
-      const bdrLeft  = pBdr?.querySelector("left");
-
-      const bdrColor = (el) => {
-        const c = val(el, "color") ?? "";
-        return c.length === 6 ? "#" + c.toLowerCase() : null;
-      };
-      const bdrThick = (el) => Math.max(1, Math.round(parseInt(val(el, "sz") ?? "4") / 4));
-
-      let borderBottom = "none", borderLeft = "none", paddingLeft = "0";
-      if (bdrBot) {
-        borderBottom = `${bdrThick(bdrBot)}px solid ${bdrColor(bdrBot) ?? accentColor}`;
-      }
-      if (bdrLeft) {
-        borderLeft  = `${bdrThick(bdrLeft)}px solid ${bdrColor(bdrLeft) ?? accentColor}`;
-        paddingLeft = "10px";
-      }
-
-      // paragraph shading (background fill for section headings)
-      const fill = val(pPr?.querySelector("shd"), "fill");
-      const bgFill = fill && fill !== "auto" && fill.length === 6 ? "#" + fill.toLowerCase() : null;
-
-      return { color, sz, bold, italic, caps, jc, charSpacing, borderBottom, borderLeft, paddingLeft, bgFill };
-    };
-
-    // ── find styles by id or name ────────────────────────────────────────────
-    const stylesDoc = await parse("word/styles.xml");
-    let nameR = {}, h2R = {}, bodyR = {};
-
-    if (stylesDoc) {
-      const all = [...stylesDoc.querySelectorAll("style")];
-      const find = (...ids) => {
-        for (const id of ids) {
-          const s = all.find(s =>
-            (s.getAttribute("styleId") ?? "").toLowerCase() === id.toLowerCase() ||
-            (s.querySelector("name")?.getAttribute("val") ?? "").toLowerCase() === id.toLowerCase()
-          );
-          if (s) return s;
-        }
-        return null;
-      };
-
-      nameR = readStyle(find("Heading1", "heading 1", "Title"));
-      h2R   = readStyle(find("Heading2", "heading 2", "Subtitle"));
-      bodyR = readStyle(find("Normal", "normal", "Body Text", "Default Paragraph Font"));
-
-      // Body font name
-      const bodyFontEl = find("Normal", "normal");
-      const bfAscii = bodyFontEl?.querySelector("rPr rFonts")?.getAttribute("ascii") ?? "";
-      if (bfAscii) minorFont = `'${bfAscii}', sans-serif`;
-    }
-
-    // ── page background from document.xml ────────────────────────────────────
-    const docDoc = await parse("word/document.xml");
-    if (docDoc) {
-      const pg = val(docDoc.querySelector("background"), "color");
-      if (pg && pg !== "auto" && pg.length === 6) bgColor = "#" + pg.toLowerCase();
-    }
-
-    // ── resolve accent from Heading1 color if present ────────────────────────
-    if (nameR.color) accentColor = nameR.color;
-    else if (h2R.color) accentColor = h2R.color;
-
-    const isDark = ((hex) => {
-      const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
-      return (0.299*r + 0.587*g + 0.114*b)/255 < 0.4;
-    })(bgColor);
-
-    const mutedColor = bodyColor + "99";
-    const bodyFontSize = bodyR.sz ? hpToPx(bodyR.sz) : "12px";
-    const readableBody = isDark ? "#c8c0b0" : (bodyR.color ?? bodyColor);
-
-    // ── assemble exact style object ──────────────────────────────────────────
-    return {
-      id: "custom",
-      name: "Custom",
-      desc: "Exact replica from your document",
-      preview: { bg: bgColor, accent: accentColor, text: bodyColor },
-      styles: {
-        page: {
-          background: bgColor,
-          color: bodyColor,
-          fontFamily: minorFont,
-          padding: "48px 56px",
-          minHeight: "560mm",
-        },
-        name: {
-          fontSize: nameR.sz ? hpToPx(nameR.sz) : "28px",
-          fontWeight: nameR.bold ? "700" : "400",
-          fontStyle: nameR.italic ? "italic" : "normal",
-          textTransform: nameR.caps ? "uppercase" : "none",
-          color: accentColor,
-          textAlign: nameR.jc === "center" ? "center" : "left",
-          letterSpacing: nameR.charSpacing ? `${(nameR.charSpacing / 10).toFixed(2)}em` : "0px",
-          fontFamily: majorFont,
-          marginBottom: "4px",
-        },
-        contact: {
-          fontSize: "11px",
-          color: mutedColor,
-          letterSpacing: "0.5px",
-          marginBottom: "28px",
-          textAlign: nameR.jc === "center" ? "center" : "left",
-        },
-        sectionTitle: {
-          fontSize: h2R.sz ? hpToPx(h2R.sz) : "10px",
-          fontWeight: h2R.bold !== false ? "700" : "600",
-          textTransform: h2R.caps ? "uppercase" : "uppercase",
-          color: h2R.color ?? accentColor,
-          background: h2R.bgFill ?? "transparent",
-          borderBottom: h2R.borderBottom !== "none" ? h2R.borderBottom
-            : (h2R.borderLeft === "none" ? `1px solid ${accentColor}44` : "none"),
-          borderLeft: h2R.borderLeft ?? "none",
-          paddingLeft: h2R.paddingLeft ?? "0",
-          paddingBottom: h2R.bgFill ? "5px" : "5px",
-          paddingTop: h2R.bgFill ? "5px" : "0",
-          letterSpacing: "2px",
-          marginBottom: "12px",
-          marginTop: "26px",
-        },
-        jobTitle: {
-          fontSize: bodyFontSize,
-          fontWeight: "700",
-          color: bodyColor,
-        },
-        company: {
-          fontSize: bodyFontSize,
-          color: mutedColor,
-          fontStyle: "italic",
-          marginBottom: "6px",
-        },
-        bullet: {
-          fontSize: bodyFontSize,
-          color: readableBody,
-          lineHeight: "1.75",
-          marginBottom: "4px",
-          paddingLeft: "14px",
-          position: "relative",
-        },
-        summary: {
-          fontSize: bodyFontSize,
-          color: readableBody,
-          lineHeight: "1.8",
-        },
-        skillTag: {
-          background: "transparent",
-          border: "none",
-          color: readableBody,
-          fontSize: bodyFontSize,
-          padding: "0",
-          borderRadius: "0",
-        },
-      },
-    };
-  };
-
-  const handleThemeUpload = async (file) => {
-    if (!file) return;
-    const ext = file.name.split(".").pop().toLowerCase();
-    if (ext !== "docx") {
-      setCustomThemeError("Please upload a .docx file — exact colors and fonts are read directly from the Word document.");
-      return;
-    }
-    setCustomThemeLoading(true);
-    setCustomThemeError(null);
-    setCustomThemePreview(null);
-    try {
-      const theme = await extractThemeFromDocx(file);
-      setCustomTheme(theme);
-      setSelectedTheme(theme);
-    } catch {
-      setCustomThemeError("Could not read the .docx. Make sure it's a valid Word document.");
-    }
-    setCustomThemeLoading(false);
   };
 
   const handleGenerate = async () => {
@@ -1155,71 +856,7 @@ export default function App() {
         {step === 2 && (
           <div className="fade-in">
             <h1 style={{ fontSize: "22px", fontWeight: "700", marginBottom: "6px" }}>Choose a Theme</h1>
-            <p style={{ color: "#666", fontSize: "14px", marginBottom: "24px" }}>Pick a preset or upload a .docx resume — exact colors and fonts are extracted from the Word file itself.</p>
-
-            {/* Custom theme upload */}
-            <div style={{ marginBottom: "24px" }}>
-              <div style={{ fontSize: "12px", fontWeight: "600", color: "#444", marginBottom: "10px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                Match a template style
-              </div>
-              <div
-                onClick={() => themeFileRef.current.click()}
-                style={{
-                  border: `1.5px dashed ${selectedTheme.id === "custom" ? "#1a1a1a" : "#d0d0d0"}`,
-                  borderRadius: "8px", padding: "18px 20px", cursor: "pointer",
-                  background: selectedTheme.id === "custom" ? "#f8f8f8" : "#fff",
-                  display: "flex", alignItems: "center", gap: "16px",
-                  transition: "all 0.15s",
-                }}
-              >
-                <div style={{ width: "56px", height: "56px", background: customTheme ? "#f0fdf4" : "#f0f0f0", borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "22px", border: customTheme ? "1px solid #bbf7d0" : "1px solid #e0e0e0" }}>
-                  {customTheme ? "✓" : "📄"}
-                </div>
-                <div style={{ flex: 1 }}>
-                  {customThemeLoading ? (
-                    <div>
-                      <div className="spinner" style={{ width: "20px", height: "20px", borderWidth: "2px", margin: "0 0 6px 0" }} />
-                      <div style={{ fontSize: "12px", color: "#888" }}>Analyzing design...</div>
-                    </div>
-                  ) : customTheme ? (
-                    <div style={{ flex: 1 }} onClick={e => e.stopPropagation()}>
-                      <div style={{ fontWeight: "600", fontSize: "13px", marginBottom: "8px" }}>✓ Theme extracted from your document</div>
-                      <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "10px" }}>
-                        {[["Background", customTheme.preview.bg], ["Text", customTheme.preview.text], ["Accent", customTheme.preview.accent]].map(([label, color]) => (
-                          <div key={label} style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                            <div style={{ width: "18px", height: "18px", borderRadius: "3px", background: color, border: "1px solid #e0e0e0" }} />
-                            <span style={{ fontSize: "10px", color: "#888" }}>{label}</span>
-                          </div>
-                        ))}
-                      </div>
-                      <div style={{ fontSize: "11px", color: "#888", marginBottom: "8px" }}>
-                        Upload a different file to replace, or pick a preset below.
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <div style={{ fontWeight: "600", fontSize: "13px", marginBottom: "3px" }}>Upload a .docx resume to copy its exact style</div>
-                      <div style={{ fontSize: "11px", color: "#888" }}>Colors, fonts, and name style read directly from the Word XML</div>
-                    </div>
-                  )}
-                  {customThemeError && (
-                    <div style={{ fontSize: "11px", color: "#dc2626", marginTop: "4px" }}>{customThemeError}</div>
-                  )}
-                </div>
-              </div>
-              <input
-                ref={themeFileRef}
-                type="file"
-                accept=".docx"
-                style={{ display: "none" }}
-                onChange={(e) => handleThemeUpload(e.target.files[0])}
-              />
-            </div>
-
-            {/* Preset themes */}
-            <div style={{ fontSize: "12px", fontWeight: "600", color: "#444", marginBottom: "10px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-              Preset themes
-            </div>
+            <p style={{ color: "#666", fontSize: "14px", marginBottom: "24px" }}>Pick the style your resume should use.</p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "12px", marginBottom: "28px" }}>
               {THEMES.map((theme) => (
                 <div
@@ -1247,7 +884,7 @@ export default function App() {
 
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <button className="btn-ghost" onClick={() => setStep(1)}>← Back</button>
-              <button className="btn-primary" onClick={() => setStep(3)} disabled={customThemeLoading}>Continue →</button>
+              <button className="btn-primary" onClick={() => setStep(3)}>Continue →</button>
             </div>
           </div>
         )}
@@ -1412,7 +1049,7 @@ export default function App() {
 
             {/* Inline theme switcher */}
             <div style={{ display: "flex", gap: "6px", marginBottom: "16px", flexWrap: "wrap" }}>
-              {[...THEMES, ...(customTheme ? [customTheme] : [])].map((t) => (
+              {THEMES.map((t) => (
                 <button
                   key={t.id}
                   onClick={() => setSelectedTheme(t)}
