@@ -6,10 +6,7 @@ function stripMarkdown(text) {
 
 function parseOutput(raw) {
   const text = stripMarkdown(raw);
-  // Strip markdown formatting (bold, italic, headers) so **JOB:** or ## NAME: still parse correctly
-  const lines = text.split("\n")
-    .map(l => l.replace(/^[#*_>\s]+/, "").replace(/[*_`]+/g, "").trim())
-    .filter(Boolean);
+  const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
 
   const result = {
     matchScore: 0,
@@ -102,45 +99,85 @@ export default async function handler(req, res) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "API key not configured" });
 
-  const prompt = `You are a professional resume writer. Rewrite the resume below to target the job description. Follow these rules exactly:
+  const prompt = `You are a professional resume writer. Rewrite the person's resume to target this job description using their real background only. Be strategic and honest — never fabricate.
 
-1. HONESTY: Do not fabricate work history, past responsibilities, or core achievements. Only rephrase existing content from the provided resumes to highlight its relevance to the JD.
-2. NATURAL PHRASING: All rephrasing must flow naturally and professionally. Do not force keywords or over-exaggerate if it makes the sentence sound unnatural.
-3. PERMITTED SKILL ADDITIONS: You may add easily acquirable skills to the Skills section if requested in the JD — things like MS Excel, ERP systems, QuickBooks, Sage, Xero, SAP basics, Google Sheets, or similar software that can be learned in 3–6 months. Add to Skills section only.
-4. UNFILLED GAPS: If critical JD requirements cannot be met, list them in GAPS only — do not invent experience.
-5. MEMORY & RELEVANCE: If past resume versions are provided and contain job roles more relevant to this JD than the current resume, use those roles in the output. Always pick the most JD-relevant real job entries from across all provided resumes. Never fabricate a job — only use roles that actually exist in one of the provided resumes.
+━━━ HARD RULES ━━━
+1. Every JOB line must use the exact company name and job title from the resume — never invent, never use [Company] [Location] [Dates] placeholders
+2. Each job appears EXACTLY ONCE — do not repeat the same company+title combination
+3. Each education entry appears EXACTLY ONCE
+4. Do not fabricate work history, past responsibilities, or achievements — only rephrase what actually exists in the resume
+5. Do not force JD keywords unnaturally — if a keyword does not genuinely fit the person's real experience, do not use it
+6. Never fabricate metrics, specific numbers, or credentials that take years to earn (degrees, CPA, PEng, etc.)
+7. Past resume versions — if a past resume contains a real job role more relevant to this JD than the current resume, include that role in the output. Always pick the most JD-relevant real job entries from across all provided resumes. Never fabricate a job — only use roles that exist in one of the provided resumes.
 
-OUTPUT FORMAT:
+━━━ PERMITTED ADDITIONS (skills only — not job entries) ━━━
+A. Short-term learnable tools (3-6 months) required by the JD, when the person has relevant background:
+   Finance/accounting: Excel, Google Sheets, QuickBooks, Sage, SAP basics, Canadian GAAP, GST/HST, bank reconciliation tools
+   Sales/marketing: Salesforce basics, HubSpot, Google Analytics, Mailchimp, Meta Ads
+   Operations/supply chain: SAP basics, ERP fundamentals, inventory management, WMS basics
+   Admin/coordinator: MS Office Suite, Google Workspace, Asana, Trello, Outlook, Teams
+   Any office role: Zoom, process documentation, basic reporting, data entry systems
+
+B. Interchangeable tools — if person knows one, they can use the other:
+   QuickBooks ↔ Sage ↔ Xero ↔ FreshBooks | Excel ↔ Google Sheets | SAP ↔ Oracle ↔ Dynamics ↔ NetSuite
+   Salesforce ↔ HubSpot ↔ Zoho | Jira ↔ Asana ↔ Trello ↔ Monday | Slack ↔ Teams ↔ Google Chat
+   → If JD requires a tool from a family the person knows, include the JD's term in their skills
+
+C. Every skill, tool, and certification from ANY past resume version
+
+━━━ REWRITING APPROACH ━━━
+1. Build master profile: current resume + all past versions + permitted additions above
+2. Read JD — classify each requirement:
+   COVERED = clearly in their background | BRIDGED = transferable experience addresses it | GAP = genuinely absent
+3. Rewrite each real job with 5-6 bullets — rephrase actual responsibilities using JD vocabulary where it fits naturally
+4. Distribute JD requirements across existing jobs only — never create a new job entry to fill a gap
+5. If a JD requirement absolutely cannot be met by honest rephrasing → list in GAPS
+
+━━━ SKILLS SECTION RULES ━━━
+The skills section is driven by the JD — only include what the JD actually cares about.
+
+ALWAYS INCLUDE: technical skills, software, tools, platforms, certifications, methodologies that appear in or are relevant to the JD
+
+INCLUDE ONLY IF JD EXPLICITLY REQUIRES IT: soft skills, using the JD's own phrasing (2-3 words max)
+   Example: JD says "cross-functional collaboration" → include "Cross-functional Collaboration"
+
+NEVER INCLUDE: generic filler — "detail-oriented", "team player", "strong work ethic", "excellent organizational skills", "committed to accuracy", "ability to work independently"
+
+━━━ OUTPUT FORMAT — plain text only, no markdown ━━━
 MATCH_SCORE: [0-100]
 RECOMMENDATION: [APPLY or APPLY_WITH_CAUTION or RECONSIDER]
-REASON: [2-3 sentences]
-COVERED: [requirement | requirement | ...]
-BRIDGED: [requirement | requirement | ...]
-GAPS: [requirement | requirement | ...]
+REASON: [2-3 sentences: strengths, key gaps, honest verdict]
+COVERED: [req | req | ...]
+BRIDGED: [req | req | ...]
+GAPS: [genuine missing req | ...]
 NAME: [full name]
-CONTACT: [phone | email | LinkedIn | City Province]
-SUMMARY: [3 sentences, first person]
-SKILLS: [skills, comma-separated]
+CONTACT: [phone with dashes | email | LinkedIn | City Province — pipe separated, no commas]
+SUMMARY: [3 sentences, first person: I am... I have... I bring... — use JD vocabulary]
+SKILLS: [hard skills and tools only, comma-separated — no soft skills, no filler phrases]
 JOB: [title] | [company] | [location] | [dates]
-BULLET: [bullet point]
-BULLET: [bullet point]
-BULLET: [bullet point]
-BULLET: [bullet point]
+BULLET: [strong verb + real responsibility rephrased with JD keyword]
+BULLET: [strong verb + real responsibility rephrased with JD keyword]
+BULLET: [strong verb + real responsibility rephrased with JD keyword]
+BULLET: [strong verb + real responsibility rephrased with JD keyword]
+BULLET: [strong verb + real responsibility rephrased with JD keyword]
+BULLET: [strong verb + real responsibility rephrased with JD keyword]
+(one JOB block per real position — never repeat)
 EDU: [degree] | [school] | [location] | [year]
-BULLET: [achievement]
+BULLET: [relevant achievement]
+BULLET: [relevant achievement]
 
-RESUME:
+━━━ RESUME ━━━
 ${resumeText}
 ${pastResumes.length > 0 ? `
-PAST RESUME VERSIONS (use roles from these if more relevant to the JD):
+━━━ PAST RESUME VERSIONS (use roles from these if more relevant to the JD than the current resume) ━━━
 ${pastResumes.map((r, i) => `[v${i + 1}]\n${r}`).join("\n---\n")}
 ` : ""}
-JOB DESCRIPTION:
+━━━ JOB DESCRIPTION ━━━
 ${jobDescription}
 
 BEGIN OUTPUT:`;
 
-  const systemPrompt = "You are a professional resume writer. Output plain text only, no markdown. First line must be MATCH_SCORE:";
+  const systemPrompt = "You are a professional resume writer. Rewrite resumes in the exact plain-text format specified. Skills section = hard skills and tools only, never soft skills or abstract phrases. Never fabricate job entries. Output plain text only, no markdown. First line must be MATCH_SCORE:";
 
   // Per-model config
   const MODELS = [
@@ -149,25 +186,31 @@ BEGIN OUTPUT:`;
     { id: "llama3-8b-8192",          maxTokens: 2048, small: true  },
   ];
 
-  // Compact fallback prompt for small models
-  const smallPrompt = `Rewrite the resume to target the job description. Rules: (1) Only rephrase real content from the resumes provided — no fabrication of experience. (2) Natural phrasing only. (3) Add easily acquirable skills (Excel, ERP, QuickBooks, Sage, etc.) to Skills if JD requires them. (4) If past resume versions have more relevant roles for this JD, use those. (5) List unmet requirements in GAPS. Output plain text only.
+  // Compact fallback prompt for small models — same rules, far fewer tokens
+  const smallPrompt = `Rewrite this resume to target the job description. Output plain text only.
+
+RULES:
+- Only use real companies/titles from the resume — never invent jobs or use [brackets]
+- Each job and education entry appears exactly once
+- Skills: hard skills and tools only (software, certifications, technical methods). No soft skills, no generic phrases.
+- Add implied tools for their industry (Excel/Sheets for finance, QuickBooks/Sage interchangeable, SAP basics for ops, etc.)
+- Paraphrase experience bullets using JD keywords — 5-6 bullets per job
+- True gaps only: list in GAPS and REASON
 
 OUTPUT FORMAT:
 MATCH_SCORE: [0-100]
 RECOMMENDATION: [APPLY or APPLY_WITH_CAUTION or RECONSIDER]
 REASON: [2-3 sentences]
-COVERED: [requirement | requirement | ...]
-BRIDGED: [requirement | requirement | ...]
-GAPS: [requirement | requirement | ...]
-NAME: [full name]
+COVERED: [req | req]
+BRIDGED: [req | req]
+GAPS: [req | req]
+NAME: [name]
 CONTACT: [phone | email | LinkedIn | City Province]
 SUMMARY: [3 sentences, first person]
-SKILLS: [skills, comma-separated]
+SKILLS: [hard skills only, comma-separated]
 JOB: [title] | [company] | [location] | [dates]
-BULLET: [bullet point]
-BULLET: [bullet point]
-BULLET: [bullet point]
-BULLET: [bullet point]
+BULLET: [verb + keyword + context]
+(5-6 bullets per job, repeat for each position)
 EDU: [degree] | [school] | [location] | [year]
 BULLET: [achievement]
 
@@ -232,15 +275,23 @@ BEGIN OUTPUT:`;
     return res.status(500).json({ error: `Could not parse output. Raw start: ${text.slice(0, 300)}` });
   }
 
-  // ── Post-processing: enforce rules in code regardless of AI compliance ──
+  const allResumeText = [resumeText, ...pastResumes].join(" ").toLowerCase();
 
-  // 1. Remove fabricated job entries — bracket placeholders only
+  // 1. Remove fabricated job entries (bracket placeholders only)
+  // Note: job.company = "Company | Location | Dates" — only check the company name segment
   parsed.experience = parsed.experience.filter(job => {
-    // job.company = "Company | Location | Dates" — only check company name, not location/dates
-    const companyName = (job.company || "").split("|")[0].toLowerCase().trim();
+    const companyFull = (job.company || "").toLowerCase();
+    const companyName = companyFull.split("|")[0].trim(); // company name only, not location/dates
     const title       = (job.title   || "").toLowerCase();
-    return !(companyName.includes("[") || companyName.includes("]") ||
-             title.includes("[")       || title.includes("]"));
+    // Reject obvious placeholder text with brackets
+    if (companyFull.includes("[") || companyFull.includes("]") ||
+        title.includes("[")       || title.includes("]")) return false;
+    // Check at least one meaningful word from company name or title exists in resume
+    const companyWords = companyName.split(/\s+/).filter(w => w.length > 3);
+    const titleWords   = title.split(/\s+/).filter(w => w.length > 3);
+    const allWords = [...companyWords, ...titleWords];
+    if (allWords.length === 0) return true;
+    return allWords.some(w => allResumeText.includes(w));
   });
 
   // 2. Deduplicate jobs — keep only the first occurrence of each company+title
@@ -260,48 +311,6 @@ BEGIN OUTPUT:`;
     seenEdu.add(key);
     return true;
   });
-
-  // 4. Strip generic soft skills the AI keeps adding despite instructions
-  const BANNED_SKILLS = [
-    "detail-oriented", "detail oriented", "attention to detail",
-    "hard worker", "hard-worker", "strong work ethic", "work ethic",
-    "team player", "team-player", "teamwork", "collaborative",
-    "excellent organizational skills", "organizational skills", "organization skills",
-    "committed to accuracy", "accuracy", "committed to",
-    "ability to work independently", "works independently", "independent worker",
-    "strong communication", "excellent communication", "communication skills",
-    "verbal communication", "written communication", "interpersonal skills",
-    "time management", "multitasking", "multi-tasking",
-    "fast learner", "quick learner", "eager to learn",
-    "problem solver", "problem-solver", "critical thinking",
-    "analytical skills", "self-motivated", "self motivated",
-    "motivated", "proactive", "adaptable", "flexible",
-    "results-oriented", "results oriented", "results-driven", "goal-oriented",
-    "customer-focused", "client-focused", "service-oriented",
-    "strong work", "positive attitude", "willingness to learn",
-  ];
-  parsed.skills = parsed.skills.filter(skill => {
-    const lower = skill.toLowerCase().trim();
-    return !BANNED_SKILLS.some(banned => lower === banned || lower.includes(banned));
-  });
-
-  // 5. Auto-prepend [Unfilled Gaps] to reason when genuine gaps exist
-  //    (Rule 3 — enforced here so AI compliance doesn't matter)
-  // 5. Auto-prepend [Unfilled Gaps] to reason when genuine gaps exist
-  if (parsed.gaps.length > 0) {
-    const gapLabel = `[Unfilled Gaps: ${parsed.gaps.join(", ")}]`;
-    if (!parsed.recommendationReason.startsWith("[Unfilled Gaps")) {
-      parsed.recommendationReason = `${gapLabel} ${parsed.recommendationReason}`;
-    }
-  }
-
-  // 6. Strip AI placeholder text from education fields (e.g. "[Year Not Specified]")
-  const stripPlaceholders = (str) => (str || "").replace(/\[.*?\]/g, "").trim();
-  parsed.education = parsed.education.map(edu => ({
-    ...edu,
-    degree: stripPlaceholders(edu.degree),
-    school: stripPlaceholders(edu.school),
-  }));
 
   return res.status(200).json(parsed);
 }
