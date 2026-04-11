@@ -126,12 +126,23 @@ B. Interchangeable tools — if person knows one, they can use the other:
 C. Every skill, tool, and certification from ANY past resume version
 
 ━━━ REWRITING APPROACH ━━━
-1. Build master profile: current resume + all past versions + permitted additions above
+1. Build master profile: current resume + all past versions + permitted skill additions above
 2. Read JD — classify each requirement:
    COVERED = clearly in their background | BRIDGED = transferable experience addresses it | GAP = genuinely absent
-3. Rewrite each real job with 5-6 bullets — rephrase actual responsibilities using JD vocabulary where it fits naturally
+3. For each real job: rephrase ONLY the responsibilities already written in the resume using JD vocabulary
 4. Distribute JD requirements across existing jobs only — never create a new job entry to fill a gap
-5. If a JD requirement absolutely cannot be met by honest rephrasing → list in GAPS
+5. If a JD requirement cannot be met by honest rephrasing → list in GAPS
+
+━━━ EXPERIENCE BULLETS — STRICT RULES ━━━
+- Start from what the resume actually says for each role — do not invent responsibilities
+- Rephrase each existing responsibility to use JD language where it fits naturally
+- Do NOT hit a bullet count by fabricating duties. If the resume has 3 points for a role, output 3 — not 6
+- Do NOT add responsibilities that are not stated or directly implied by what is written
+- A responsibility is "implied" only if it is an inseparable part of the stated task
+  (e.g. "processed invoices" implies "verified invoice accuracy" — it does NOT imply "managed vendor relationships")
+
+WRONG: Resume says "filed documents" → Bullet: "Led cross-functional compliance initiatives across 3 departments"
+RIGHT: Resume says "filed documents" → Bullet: "Maintained organized filing systems to support accurate record-keeping and audit readiness"
 
 ━━━ SKILLS SECTION RULES ━━━
 The skills section is driven by the JD — only include what the JD actually cares about.
@@ -155,16 +166,11 @@ CONTACT: [phone with dashes | email | LinkedIn | City Province — pipe separate
 SUMMARY: [3 sentences, first person: I am... I have... I bring... — use JD vocabulary]
 SKILLS: [hard skills and tools only, comma-separated — no soft skills, no filler phrases]
 JOB: [title] | [company] | [location] | [dates]
-BULLET: [strong verb + real responsibility rephrased with JD keyword]
-BULLET: [strong verb + real responsibility rephrased with JD keyword]
-BULLET: [strong verb + real responsibility rephrased with JD keyword]
-BULLET: [strong verb + real responsibility rephrased with JD keyword]
-BULLET: [strong verb + real responsibility rephrased with JD keyword]
-BULLET: [strong verb + real responsibility rephrased with JD keyword]
-(one JOB block per real position — never repeat)
+BULLET: [existing responsibility rephrased with JD keyword — no invented duties]
+BULLET: [existing responsibility rephrased with JD keyword — no invented duties]
+(only as many bullets as responsibilities exist in the original resume for this role)
 EDU: [degree] | [school] | [location] | [year]
-BULLET: [relevant achievement]
-BULLET: [relevant achievement]
+BULLET: [relevant achievement or coursework]
 
 ━━━ RESUME ━━━
 ${resumeText}
@@ -177,7 +183,7 @@ ${jobDescription}
 
 BEGIN OUTPUT:`;
 
-  const systemPrompt = "You are a professional resume writer. Rewrite resumes in the exact plain-text format specified. Skills section = hard skills and tools only, never soft skills or abstract phrases. Never fabricate job entries. Output plain text only, no markdown. First line must be MATCH_SCORE:";
+  const systemPrompt = "You are a professional resume writer. Rewrite resumes in the exact plain-text format specified. CRITICAL: Never fabricate responsibilities, duties, or achievements. Only rephrase what is explicitly written in the resume. Do not invent bullets to hit a count — output only as many bullets as responsibilities exist in the original. Skills = hard skills only. Output plain text only, no markdown. First line must be MATCH_SCORE:";
 
   // Per-model config
   const MODELS = [
@@ -209,10 +215,10 @@ CONTACT: [phone | email | LinkedIn | City Province]
 SUMMARY: [3 sentences, first person]
 SKILLS: [hard skills only, comma-separated]
 JOB: [title] | [company] | [location] | [dates]
-BULLET: [verb + keyword + context]
-(5-6 bullets per job, repeat for each position)
+BULLET: [existing responsibility rephrased — no invented duties]
+(only as many bullets as exist in the original resume for this role)
 EDU: [degree] | [school] | [location] | [year]
-BULLET: [achievement]
+BULLET: [achievement or coursework]
 
 RESUME:
 ${resumeText.slice(0, 1800)}
