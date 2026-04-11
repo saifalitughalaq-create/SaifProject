@@ -894,8 +894,26 @@ export default function App() {
         {/* STEP 0: Upload Resume */}
         {step === 0 && (
           <div className="fade-in">
-            <h1 style={{ fontSize: "22px", fontWeight: "700", marginBottom: "6px" }}>Upload Your Resume</h1>
-            <p style={{ color: "#666", fontSize: "14px", marginBottom: "28px" }}>Upload a text file or paste your resume content below.</p>
+            <h1 style={{ fontSize: "26px", fontWeight: "800", marginBottom: "6px", letterSpacing: "-0.5px" }}>AI Resume Tailored to Any Job</h1>
+            <p style={{ color: "#666", fontSize: "14px", marginBottom: "32px" }}>Paste your resume and a job description. The AI rewrites your resume from scratch to match the role — honest, no fabrication.</p>
+
+            {/* Feature highlights */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginBottom: "32px" }}>
+              {[
+                { icon: "🎯", title: "Tailored to the JD", desc: "Every bullet rewritten using the job's exact keywords and requirements." },
+                { icon: "🧠", title: "Remembers Your Background", desc: "Sign in and the AI learns from every resume you upload — getting sharper each time." },
+                { icon: "✅", title: "Honest Fit Score", desc: "Get a match score and clear breakdown of what you cover, bridge, or miss." },
+              ].map(({ icon, title, desc }) => (
+                <div key={title} style={{ background: "#fff", border: "1px solid #e8e8e8", borderRadius: "10px", padding: "18px 16px" }}>
+                  <div style={{ fontSize: "22px", marginBottom: "8px" }}>{icon}</div>
+                  <div style={{ fontSize: "13px", fontWeight: "700", marginBottom: "5px", color: "#1a1a1a" }}>{title}</div>
+                  <div style={{ fontSize: "12px", color: "#777", lineHeight: "1.6" }}>{desc}</div>
+                </div>
+              ))}
+            </div>
+
+            <h2 style={{ fontSize: "15px", fontWeight: "700", marginBottom: "6px" }}>Upload Your Resume</h2>
+            <p style={{ color: "#666", fontSize: "13px", marginBottom: "16px" }}>Upload a file or paste your resume below to get started.</p>
 
             <div
               onDrop={handleDrop}
