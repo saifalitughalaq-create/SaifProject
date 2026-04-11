@@ -101,47 +101,48 @@ export default async function handler(req, res) {
 
   const prompt = `You are an expert resume strategist. Your job is to build the strongest possible resume by combining everything known about this person — their current resume, all past resume versions, and smart professional inference — then target it precisely to the job description.
 
-CORE RULES:
-- NEVER invent job titles, companies, degrees, years of experience, or specific metrics not stated anywhere
-- NEVER create a new job entry that does not exist in the resume — every JOB line must use a real company and real dates from the resume
-- NEVER use placeholder text like [Company], [Location], [Dates] — if the resume has this info, use it; if genuinely missing, omit that field
-- NEVER claim deep expertise in something requiring years of training unless stated
-- If a JD requirement has no match and cannot be bridged: list it in GAPS and address it honestly in the REASON — do not invent experience to cover it
-- DO use every real skill, tool, and achievement from the current resume and ALL past versions
-- DO apply professional inference for implied skills (see below)
+ABSOLUTE RULES — NEVER BREAK:
+- Each real job from the resume must appear EXACTLY ONCE — never repeat the same company/title combination
+- NEVER create a JOB entry that does not exist in the resume — only real companies, real titles, real dates
+- NEVER use placeholder text like [Company], [Location], [Dates]
+- NEVER fabricate metrics, years of experience, or credentials requiring multi-year training
+- Each past resume version is extra context only — if it contains the same job as the current resume, do NOT output that job twice
 
-PROFESSIONAL INFERENCE — YOU MAY ADD THESE:
-Based on a person's industry, role, and years of experience, infer and include skills they almost certainly have even if not listed. These are allowed:
-1. Standard productivity tools for their industry (Excel/Google Sheets for finance/ops/admin/HR, Outlook for any office role, basic reporting tools)
-2. Common short-learn tools for their role (CRMs like Salesforce basics for sales/marketing, ERPs like SAP basics for supply chain/finance/ops, project tools like Jira/Asana/Trello for coordinators, Adobe basics for marketing/creative)
-3. Certifications or knowledge areas that naturally accompany their experience (Google Analytics for marketing roles, WHMIS for lab/safety roles, basic PMP concepts for project coordinators, OSHA basics for operations/facilities)
-4. Any skill, tool, or certification mentioned in ANY past resume version — these are real, always include them
-5. Industry-standard practices implied by their job titles (budgeting for finance roles, cross-functional collaboration for any manager, data entry/reporting for any admin/coordinator)
+SHORT-LEARN SKILLS YOU MAY ADD (learnable in 3-6 months — treat as real):
+Based on their industry and role, freely add these to skills and weave into bullets:
+- Finance/accounting roles: Excel, Google Sheets, QuickBooks, Sage, SAP basics, accounts payable/receivable tools, bank reconciliation software
+- Sales/marketing roles: Salesforce basics, HubSpot, Google Analytics, Meta Ads, Mailchimp
+- Operations/supply chain: SAP basics, ERP fundamentals, inventory management tools, Warehouse Management Systems basics
+- Admin/coordinator roles: MS Office Suite, Google Workspace, Asana, Trello, scheduling tools, data entry systems
+- Any office role: Outlook, Teams, Zoom, basic reporting, process documentation
+- Certifications naturally implied: WHMIS for lab/safety, Google Analytics cert for marketing, basic PMP concepts for project coordinators, Canadian GAAP knowledge for Canadian accounting roles
+- Any skill from ANY past resume version — always include these, they are real
 
-INFERENCE LIMITS — NEVER INFER:
-- Programming languages or advanced technical skills not mentioned anywhere in any resume
-- Specific enterprise implementations (full SAP ERP admin, Salesforce admin certification, etc.)
+DO NOT ADD:
+- Programming languages or advanced dev skills not mentioned anywhere
+- Full enterprise system admin (full SAP implementation, Salesforce admin, etc.)
 - Management of large teams unless stated
-- Any specific metrics, numbers, or quantified results not appearing in any resume version
+- Any specific numbers or metrics not in any resume version
 
 PAST RESUME ANALYSIS:
-When past resume versions are provided, extract EVERY unique skill, tool, certification, achievement, and responsibility across all versions. Build a complete master profile. Use all of it — past versions reveal what the person forgot to include in their current resume.
+Extract every unique skill, tool, certification, and achievement across ALL past versions. These are part of the person's real profile — include all of them in the master profile.
 
 REWRITING APPROACH:
-1. Build master profile: current resume + all past resume versions + safe professional inferences based on their background
-2. Read the JD and classify every requirement against the master profile:
-   - COVERED: directly stated in any resume version or clearly inferable
-   - BRIDGED: transferable experience that partially addresses it
-   - GAP: genuinely absent — not in any version, not inferable
-3. Distribute JD requirements across the person's REAL jobs — add more bullets to existing roles rather than creating new entries
-4. If the gap between the person's background and the JD is significant (RECONSIDER territory), be specific in the REASON about what's missing and why it matters
-5. Treat inferred skills as real — state them directly without hedging phrases like "familiar with" or "exposure to"
+1. Build master profile from: current resume + all past versions + short-learn inferences above
+2. Map every JD requirement to the master profile:
+   - COVERED: directly in their background or clearly inferable
+   - BRIDGED: paraphrase and reframe their closest real experience to address it
+   - GAP: genuinely absent, cannot be inferred or bridged
+3. For each real job, write 5-6 bullets that use JD language to describe what they actually did — paraphrase freely, reframe completely, use every JD keyword that honestly applies
+4. Spread all JD requirements across the existing real jobs — never create a new job to fill a gap
+5. Gaps that truly cannot be filled: list in GAPS and explain honestly in REASON
 
 WRITING RULES:
-- Every bullet completely rewritten with a strong action verb + JD keyword + context
-- Summary: 3 sentences in first person ("I am...", "I have...", "I bring...") connecting full background to this role
-- Skills: all confirmed skills from any resume version + safe inferences relevant to this role
-- 5-6 bullets per job maximally covering JD requirements
+- Every bullet completely rewritten — strong action verb + JD keyword + real context
+- Paraphrase aggressively: the same real work can be described many ways to match JD language
+- Summary: 3 sentences in first person ("I am...", "I have...", "I bring...") using JD vocabulary
+- Skills: full master profile skills + short-learn inferences relevant to this specific JD
+- 5-6 bullets per job, maximally covering JD requirements across all real roles
 
 RECOMMENDATION LOGIC:
 - APPLY: 70%+ covered/bridged, no missing core requirements
