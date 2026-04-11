@@ -147,9 +147,9 @@ NEVER INCLUDE: generic filler — "detail-oriented", "team player", "strong work
 MATCH_SCORE: [0-100]
 RECOMMENDATION: [APPLY or APPLY_WITH_CAUTION or RECONSIDER]
 REASON: [2-3 sentences: strengths, key gaps, honest verdict]
-COVERED: [req | req | ...]
-BRIDGED: [req | req | ...]
-GAPS: [genuine missing req | ...]
+COVERED: [Accounts Payable | Bank Reconciliation | Canadian GAAP | ...]
+BRIDGED: [ERP Systems | Financial Reporting | ...]
+GAPS: [CPA Designation | Salesforce CRM | ...]
 NAME: [full name]
 CONTACT: [phone with dashes | email | LinkedIn | City Province — pipe separated, no commas]
 SUMMARY: [3 sentences, first person: I am... I have... I bring... — use JD vocabulary]
@@ -201,9 +201,9 @@ OUTPUT FORMAT:
 MATCH_SCORE: [0-100]
 RECOMMENDATION: [APPLY or APPLY_WITH_CAUTION or RECONSIDER]
 REASON: [2-3 sentences]
-COVERED: [req | req]
-BRIDGED: [req | req]
-GAPS: [req | req]
+COVERED: [Accounts Payable | Bank Reconciliation | ...]
+BRIDGED: [ERP Systems | Financial Reporting | ...]
+GAPS: [CPA Designation | Salesforce CRM | ...]
 NAME: [name]
 CONTACT: [phone | email | LinkedIn | City Province]
 SUMMARY: [3 sentences, first person]
@@ -277,21 +277,14 @@ BEGIN OUTPUT:`;
 
   const allResumeText = [resumeText, ...pastResumes].join(" ").toLowerCase();
 
-  // 1. Remove fabricated job entries (bracket placeholders only)
-  // Note: job.company = "Company | Location | Dates" — only check the company name segment
+  // 1. Remove fabricated job entries — bracket placeholders only
+  // Word-matching was too aggressive and removed legitimate jobs, so we only
+  // check for obvious AI placeholder text like [Company] or [Location]
   parsed.experience = parsed.experience.filter(job => {
-    const companyFull = (job.company || "").toLowerCase();
-    const companyName = companyFull.split("|")[0].trim(); // company name only, not location/dates
-    const title       = (job.title   || "").toLowerCase();
-    // Reject obvious placeholder text with brackets
-    if (companyFull.includes("[") || companyFull.includes("]") ||
-        title.includes("[")       || title.includes("]")) return false;
-    // Check at least one meaningful word from company name or title exists in resume
-    const companyWords = companyName.split(/\s+/).filter(w => w.length > 3);
-    const titleWords   = title.split(/\s+/).filter(w => w.length > 3);
-    const allWords = [...companyWords, ...titleWords];
-    if (allWords.length === 0) return true;
-    return allWords.some(w => allResumeText.includes(w));
+    const company = (job.company || "").toLowerCase();
+    const title   = (job.title   || "").toLowerCase();
+    return !(company.includes("[") || company.includes("]") ||
+             title.includes("[")   || title.includes("]"));
   });
 
   // 2. Deduplicate jobs — keep only the first occurrence of each company+title
