@@ -359,8 +359,12 @@ async function getFirestoreCount(uid) {
   return data.gens || 0;
 }
 async function incFirestoreCount(uid) {
-  const count = await getFirestoreCount(uid);
-  await setDoc(doc(db, "users", uid), { gens: count + 1, date: todayStr() }, { merge: true });
+  const snap = await getDoc(doc(db, "users", uid));
+  const data = snap.exists() ? snap.data() : {};
+  const todayCount = (data.date === todayStr() ? (data.gens || 0) : 0) + 1;
+  const totalGens = (data.totalGens || 0) + 1;
+  await setDoc(doc(db, "users", uid), { gens: todayCount, date: todayStr(), totalGens }, { merge: true });
+  return totalGens;
 }
 
 async function saveResumeToHistory(uid, text) {
@@ -684,15 +688,12 @@ export default function App() {
 
       // Save resume to history and update count
       if (user) {
-        await Promise.all([
+        const [totalGens] = await Promise.all([
           incFirestoreCount(user.uid),
           saveResumeToHistory(user.uid, resumeText),
         ]);
         setGenCount(currentCount + 1);
-        // Show saved toast
-        const history = await getPastResumes(user.uid);
-        const count = history.length;
-        setSavedToast({ count });
+        setSavedToast({ totalGens });
         setTimeout(() => setSavedToast(null), 4000);
       } else {
         incLocalCount();
@@ -856,9 +857,9 @@ export default function App() {
           <div>
             <div style={{ fontWeight: "700", marginBottom: "2px" }}>Resume saved to your memory</div>
             <div style={{ fontSize: "11px", color: "#aaa" }}>
-              {savedToast.count === 1
-                ? "First resume stored — AI will use this next time"
-                : `${savedToast.count} resumes in memory — AI is getting smarter`}
+              {savedToast.totalGens === 1
+                ? "Generation #1 saved — AI will build on this next time"
+                : `Generation #${savedToast.totalGens} saved — AI knows you better each time`}
             </div>
           </div>
         </div>
