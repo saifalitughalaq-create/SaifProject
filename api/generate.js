@@ -99,80 +99,64 @@ export default async function handler(req, res) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "API key not configured" });
 
-  const prompt = `You are a professional resume writer. Rewrite the person's resume to target this job description using their real background only. Be strategic and honest — never fabricate.
+  const prompt = `You are a professional resume writer. Rewrite the person's resume to maximally target this job description using their real background. Be strategic — use JD language aggressively wherever it fits the person's actual experience.
 
 ━━━ HARD RULES ━━━
 1. Every JOB line must use the exact company name and job title from the resume — never invent, never use [Company] [Location] [Dates] placeholders
 2. Each job appears EXACTLY ONCE — do not repeat the same company+title combination
 3. Each education entry appears EXACTLY ONCE
-4. Do not fabricate work history, past responsibilities, or achievements — only rephrase what actually exists in the resume
-5. Do not force JD keywords unnaturally — if a keyword does not genuinely fit the person's real experience, do not use it
-6. Never fabricate metrics, specific numbers, or credentials that take years to earn (degrees, CPA, PEng, etc.)
-7. Past resume versions = context only — extract skills/tools from them but do not create extra job entries
+4. Never fabricate credentials that take years to earn (degrees, CPA, PEng, etc.) or invent entirely new job entries
+5. Past resume versions = context only — extract skills/tools from them but do not create extra job entries
 
-━━━ PERMITTED ADDITIONS (skills only — not job entries) ━━━
-A. Short-term learnable tools (3-6 months) required by the JD, when the person has relevant background:
+━━━ WHAT YOU MAY ADD ━━━
+A. Skills implied by their role and industry (learnable in 3-6 months):
    Finance/accounting: Excel, Google Sheets, QuickBooks, Sage, SAP basics, Canadian GAAP, GST/HST, bank reconciliation tools
    Sales/marketing: Salesforce basics, HubSpot, Google Analytics, Mailchimp, Meta Ads
    Operations/supply chain: SAP basics, ERP fundamentals, inventory management, WMS basics
    Admin/coordinator: MS Office Suite, Google Workspace, Asana, Trello, Outlook, Teams
    Any office role: Zoom, process documentation, basic reporting, data entry systems
 
-B. Interchangeable tools — if person knows one, they can use the other:
+B. Interchangeable tools — if person has one, they can use the other:
    QuickBooks ↔ Sage ↔ Xero ↔ FreshBooks | Excel ↔ Google Sheets | SAP ↔ Oracle ↔ Dynamics ↔ NetSuite
    Salesforce ↔ HubSpot ↔ Zoho | Jira ↔ Asana ↔ Trello ↔ Monday | Slack ↔ Teams ↔ Google Chat
-   → If JD requires a tool from a family the person knows, include the JD's term in their skills
 
 C. Every skill, tool, and certification from ANY past resume version
 
 ━━━ REWRITING APPROACH ━━━
-1. Build master profile: current resume + all past versions + permitted skill additions above
+1. Build master profile: current resume + all past versions + inferences above
 2. Read JD — classify each requirement:
-   COVERED = clearly in their background | BRIDGED = transferable experience addresses it | GAP = genuinely absent
-3. For each real job: rephrase ONLY the responsibilities already written in the resume using JD vocabulary
-4. Distribute JD requirements across existing jobs only — never create a new job entry to fill a gap
-5. If a JD requirement cannot be met by honest rephrasing → list in GAPS
-
-━━━ EXPERIENCE BULLETS — STRICT RULES ━━━
-- Every job in the resume MUST appear in the output — never skip a job entry
-- Target 4–5 bullets per job, maximum 6
-- All bullets must come from actual content in the resume — paraphrase and expand existing responsibilities, do NOT invent new ones
-- To reach 4–5 bullets from fewer original points: break one responsibility into its natural components, rephrase from different angles, or highlight different aspects of the same task — but stay within what the original text actually describes
-- "Implied" means an inseparable part of the stated task only
-  (e.g. "processed invoices" implies "verified invoice accuracy" and "maintained payment records" — it does NOT imply "managed vendor relationships" or "negotiated contracts")
-- If the resume genuinely has very few responsibilities for a role and expansion would require fabrication, write what you can (minimum 2 bullets) and stop — do not pad
-
-WRONG: Resume says "filed documents" → Bullet: "Led cross-functional compliance initiatives across 3 departments"
-RIGHT: Resume says "processed accounts payable invoices" →
-  Bullet 1: "Processed and verified accounts payable invoices ensuring accurate and timely vendor payments"
-  Bullet 2: "Maintained AP records and reconciled invoice discrepancies to support clean month-end close"
+   COVERED = in their background | BRIDGED = transferable experience | GAP = genuinely absent
+3. Every job in the resume MUST appear — never skip a job entry
+4. Write 4–5 bullets per job (max 6) — paraphrase actual responsibilities using JD keywords aggressively
+5. Distribute JD requirements across existing jobs — never create a new job entry
+6. True gaps only (multi-year skills, hard credentials) → GAPS list
 
 ━━━ SKILLS SECTION RULES ━━━
 The skills section is driven by the JD — only include what the JD actually cares about.
 
-ALWAYS INCLUDE: technical skills, software, tools, platforms, certifications, methodologies that appear in or are relevant to the JD
+ALWAYS INCLUDE: technical skills, software, tools, platforms, certifications, methodologies relevant to the JD
 
-INCLUDE ONLY IF JD EXPLICITLY REQUIRES IT: soft skills, using the JD's own phrasing (2-3 words max)
-   Example: JD says "cross-functional collaboration" → include "Cross-functional Collaboration"
+INCLUDE ONLY IF JD EXPLICITLY REQUIRES IT: soft skills using the JD's own phrasing (2-3 words max)
 
-NEVER INCLUDE: generic filler — "detail-oriented", "team player", "strong work ethic", "excellent organizational skills", "committed to accuracy", "ability to work independently"
+NEVER INCLUDE: generic filler — "detail-oriented", "team player", "strong work ethic", "excellent organizational skills", "committed to accuracy"
 
 ━━━ OUTPUT FORMAT — plain text only, no markdown ━━━
 MATCH_SCORE: [0-100]
 RECOMMENDATION: [APPLY or APPLY_WITH_CAUTION or RECONSIDER]
-REASON: [2-3 sentences: strengths, honest verdict. If critical JD requirements cannot be met by honest rephrasing, start with: [Unfilled Gaps: Missing X, Y, Z]]
+REASON: [2-3 sentences: strengths, key gaps, verdict]
 COVERED: [Accounts Payable | Bank Reconciliation | Canadian GAAP | ...]
 BRIDGED: [ERP Systems | Financial Reporting | ...]
 GAPS: [CPA Designation | Salesforce CRM | ...]
 NAME: [full name]
 CONTACT: [phone with dashes | email | LinkedIn | City Province — pipe separated, no commas]
 SUMMARY: [3 sentences, first person: I am... I have... I bring... — use JD vocabulary]
-SKILLS: [hard skills and tools only, comma-separated — no soft skills, no filler phrases]
+SKILLS: [hard skills and tools only, comma-separated — no soft skills, no filler]
 JOB: [title] | [company] | [location] | [dates]
-BULLET: [existing responsibility paraphrased with JD keyword — 4 to 5 bullets, max 6, no invented duties]
+BULLET: [strong verb + JD keyword + real context — 4 to 5 bullets, max 6]
 BULLET: ...
 BULLET: ...
 BULLET: ...
+(one JOB block per real position — never repeat)
 EDU: [degree] | [school] | [location] | [year]
 BULLET: [relevant achievement or coursework]
 
@@ -187,7 +171,7 @@ ${jobDescription}
 
 BEGIN OUTPUT:`;
 
-  const systemPrompt = "You are a professional resume writer. Rewrite resumes in the exact plain-text format specified. CRITICAL: Never fabricate responsibilities or achievements. Only paraphrase and expand what is explicitly in the resume. Target 4-5 bullets per job (max 6) by expanding existing points from different angles — never by inventing duties. Skills = hard skills only. Output plain text only, no markdown. First line must be MATCH_SCORE:";
+  const systemPrompt = "You are a professional resume writer. Rewrite resumes to maximally target the job description using the person's real background. Use JD language aggressively. Every job in the resume must appear. Write 4-5 bullets per job (max 6). Never invent new job entries or fabricate credentials. Skills = hard skills only. Output plain text only, no markdown. First line must be MATCH_SCORE:";
 
   // Per-model config
   const MODELS = [
