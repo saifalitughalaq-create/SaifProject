@@ -135,14 +135,17 @@ C. Every skill, tool, and certification from ANY past resume version
 
 ━━━ EXPERIENCE BULLETS — STRICT RULES ━━━
 - Every job in the resume MUST appear in the output — never skip a job entry
-- If the resume only has a job title and company with no bullet points, write 1-2 bullets based on what that job title naturally involves, then stop
-- If the resume has explicit responsibilities listed, rephrase each one using JD vocabulary — do not add more bullets than responsibilities listed
-- Do NOT invent specific achievements, metrics, or duties that are not stated or directly implied
+- Target 4–5 bullets per job, maximum 6
+- All bullets must come from actual content in the resume — paraphrase and expand existing responsibilities, do NOT invent new ones
+- To reach 4–5 bullets from fewer original points: break one responsibility into its natural components, rephrase from different angles, or highlight different aspects of the same task — but stay within what the original text actually describes
 - "Implied" means an inseparable part of the stated task only
-  (e.g. "processed invoices" implies "verified invoice accuracy" — it does NOT imply "managed vendor relationships")
+  (e.g. "processed invoices" implies "verified invoice accuracy" and "maintained payment records" — it does NOT imply "managed vendor relationships" or "negotiated contracts")
+- If the resume genuinely has very few responsibilities for a role and expansion would require fabrication, write what you can (minimum 2 bullets) and stop — do not pad
 
 WRONG: Resume says "filed documents" → Bullet: "Led cross-functional compliance initiatives across 3 departments"
-RIGHT: Resume says "filed documents" → Bullet: "Maintained organized filing systems to support accurate record-keeping and audit readiness"
+RIGHT: Resume says "processed accounts payable invoices" →
+  Bullet 1: "Processed and verified accounts payable invoices ensuring accurate and timely vendor payments"
+  Bullet 2: "Maintained AP records and reconciled invoice discrepancies to support clean month-end close"
 
 ━━━ SKILLS SECTION RULES ━━━
 The skills section is driven by the JD — only include what the JD actually cares about.
@@ -166,9 +169,10 @@ CONTACT: [phone with dashes | email | LinkedIn | City Province — pipe separate
 SUMMARY: [3 sentences, first person: I am... I have... I bring... — use JD vocabulary]
 SKILLS: [hard skills and tools only, comma-separated — no soft skills, no filler phrases]
 JOB: [title] | [company] | [location] | [dates]
-BULLET: [existing responsibility rephrased with JD keyword — no invented duties]
-BULLET: [existing responsibility rephrased with JD keyword — no invented duties]
-(only as many bullets as responsibilities exist in the original resume for this role)
+BULLET: [existing responsibility paraphrased with JD keyword — 4 to 5 bullets, max 6, no invented duties]
+BULLET: ...
+BULLET: ...
+BULLET: ...
 EDU: [degree] | [school] | [location] | [year]
 BULLET: [relevant achievement or coursework]
 
@@ -183,7 +187,7 @@ ${jobDescription}
 
 BEGIN OUTPUT:`;
 
-  const systemPrompt = "You are a professional resume writer. Rewrite resumes in the exact plain-text format specified. CRITICAL: Never fabricate responsibilities, duties, or achievements. Only rephrase what is explicitly written in the resume. Do not invent bullets to hit a count — output only as many bullets as responsibilities exist in the original. Skills = hard skills only. Output plain text only, no markdown. First line must be MATCH_SCORE:";
+  const systemPrompt = "You are a professional resume writer. Rewrite resumes in the exact plain-text format specified. CRITICAL: Never fabricate responsibilities or achievements. Only paraphrase and expand what is explicitly in the resume. Target 4-5 bullets per job (max 6) by expanding existing points from different angles — never by inventing duties. Skills = hard skills only. Output plain text only, no markdown. First line must be MATCH_SCORE:";
 
   // Per-model config
   const MODELS = [
@@ -200,7 +204,7 @@ RULES:
 - Each job and education entry appears exactly once
 - Skills: hard skills and tools only (software, certifications, technical methods). No soft skills, no generic phrases.
 - Add implied tools for their industry (Excel/Sheets for finance, QuickBooks/Sage interchangeable, SAP basics for ops, etc.)
-- Paraphrase experience bullets using JD keywords — 5-6 bullets per job
+- Paraphrase experience bullets using JD keywords — 4-5 bullets per job (max 6), expand existing points, no fabrication
 - True gaps only: list in GAPS and REASON
 
 OUTPUT FORMAT:
@@ -216,7 +220,7 @@ SUMMARY: [3 sentences, first person]
 SKILLS: [hard skills only, comma-separated]
 JOB: [title] | [company] | [location] | [dates]
 BULLET: [existing responsibility rephrased — no invented duties]
-(only as many bullets as exist in the original resume for this role)
+(4-5 bullets per job, max 6 — paraphrase only, no fabrication)
 EDU: [degree] | [school] | [location] | [year]
 BULLET: [achievement or coursework]
 

@@ -1167,6 +1167,20 @@ export default function App() {
               </div>
             </div>
 
+            {/* Unfilled Gaps Banner — shown above match card when gaps exist */}
+            {generated.gaps?.length > 0 && (
+              <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: "10px", padding: "14px 18px", marginBottom: "12px", display: "flex", gap: "12px", alignItems: "flex-start" }}>
+                <span style={{ fontSize: "16px", flexShrink: 0 }}>⚠️</span>
+                <div>
+                  <div style={{ fontWeight: "700", fontSize: "13px", color: "#9a3412", marginBottom: "4px" }}>Unfilled Gaps</div>
+                  <div style={{ fontSize: "12px", color: "#7c2d12", lineHeight: "1.6" }}>
+                    The following JD requirements could not be addressed through honest rephrasing of your resume:{" "}
+                    <strong>{generated.gaps.join(", ")}</strong>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Match Analysis Card */}
             {(generated.matchScore > 0 || generated.recommendation) && (() => {
               const rec = generated.recommendation;
