@@ -363,11 +363,26 @@ async function incFirestoreCount(uid) {
   await setDoc(doc(db, "users", uid), { gens: count + 1, date: todayStr() }, { merge: true });
 }
 
-const generateResume = async (resumeText, jobDescription) => {
+async function saveResumeToHistory(uid, text) {
+  const snap = await getDoc(doc(db, "users", uid));
+  const existing = snap.exists() ? (snap.data().resumes || []) : [];
+  const trimmed = text.slice(0, 4000);
+  // Deduplicate — skip if same resume already saved
+  if (existing.length && existing[0].text === trimmed) return;
+  const updated = [{ text: trimmed, savedAt: Date.now() }, ...existing].slice(0, 5);
+  await setDoc(doc(db, "users", uid), { resumes: updated }, { merge: true });
+}
+
+async function getPastResumes(uid) {
+  const snap = await getDoc(doc(db, "users", uid));
+  return snap.exists() ? (snap.data().resumes || []) : [];
+}
+
+const generateResume = async (resumeText, jobDescription, pastResumes = []) => {
   const response = await fetch("/api/generate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ resumeText, jobDescription }),
+    body: JSON.stringify({ resumeText, jobDescription, pastResumes }),
   });
 
   if (!response.ok) {
@@ -652,9 +667,30 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
-      const result = await generateResume(resumeText, jobDesc);
-      if (user) { await incFirestoreCount(user.uid); setGenCount(currentCount + 1); }
-      else { incLocalCount(); setGenCount(currentCount + 1); }
+      // Load past resumes for signed-in users to improve tailoring
+      let pastResumes = [];
+      if (user && isFirebaseReady) {
+        const history = await getPastResumes(user.uid);
+        // Exclude current resume if already in history; pass previous ones
+        pastResumes = history
+          .filter(r => r.text !== resumeText.slice(0, 4000))
+          .slice(0, 3)
+          .map(r => r.text);
+      }
+
+      const result = await generateResume(resumeText, jobDesc, pastResumes);
+
+      // Save resume to history and update count
+      if (user) {
+        await Promise.all([
+          incFirestoreCount(user.uid),
+          saveResumeToHistory(user.uid, resumeText),
+        ]);
+        setGenCount(currentCount + 1);
+      } else {
+        incLocalCount();
+        setGenCount(currentCount + 1);
+      }
       setGenerated(result);
       setStep(4);
     } catch (err) {
@@ -839,8 +875,8 @@ export default function App() {
               <div style={{ color: "#555", fontSize: "13px", marginBottom: "4px" }}>
                 Drop file here or <span style={{ textDecoration: "underline" }}>click to browse</span>
               </div>
-              <div style={{ color: "#aaa", fontSize: "11px" }}>Supports .docx, .pdf, .txt</div>
-              <input ref={fileRef} type="file" accept=".docx,.pdf,.txt" style={{ display: "none" }} onChange={(e) => handleFile(e.target.files[0])} />
+              <div style={{ color: "#aaa", fontSize: "11px" }}>Supports .docx and .txt</div>
+              <input ref={fileRef} type="file" accept=".docx,.txt" style={{ display: "none" }} onChange={(e) => handleFile(e.target.files[0])} />
             </div>
 
             <div style={{ fontSize: "12px", color: "#888", marginBottom: "8px" }}>Or paste your resume text:</div>

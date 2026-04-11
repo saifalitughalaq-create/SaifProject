@@ -93,7 +93,7 @@ function parseOutput(raw) {
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const { resumeText, jobDescription } = req.body;
+  const { resumeText, jobDescription, pastResumes = [] } = req.body;
   if (!resumeText || !jobDescription) return res.status(400).json({ error: "Missing inputs" });
 
   const apiKey = process.env.GROQ_API_KEY;
@@ -155,9 +155,13 @@ BULLET: [real achievement relevant to role]
 BULLET: [real achievement relevant to role]
 
 ---
-RESUME (facts only):
+RESUME (facts only — this is the resume to rewrite):
 ${resumeText}
-
+${pastResumes.length > 0 ? `
+---
+PAST RESUME VERSIONS (same person — use ONLY to discover additional real skills, tools, and experience not in the current resume above; never fabricate):
+${pastResumes.map((r, i) => `[Past version ${i + 1}]\n${r}`).join("\n---\n")}
+` : ""}
 ---
 JOB DESCRIPTION:
 ${jobDescription}
