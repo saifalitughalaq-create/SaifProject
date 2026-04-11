@@ -818,6 +818,25 @@ export default function App() {
             box-sizing: border-box;
           }
         }
+        /* ── Responsive ── */
+        @media (max-width: 640px) {
+          .header-tagline { display: none; }
+          .header-inner { height: auto !important; padding: 10px 0 !important; flex-wrap: wrap; gap: 8px; }
+          .header-right { flex-wrap: wrap; gap: 6px !important; }
+          .feature-grid { grid-template-columns: 1fr !important; }
+          .main-container { padding: 20px 14px 60px !important; }
+          .step4-top { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
+          .step4-buttons { width: 100%; display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; }
+          .resume-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+          .resume-scroll > * { min-width: 520px; }
+          .gen-counter { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+          .btn-primary, .btn-ghost { padding: 10px 16px !important; font-size: 12px !important; }
+          h1 { font-size: 20px !important; }
+        }
+        @media (max-width: 400px) {
+          .header-right { gap: 4px !important; }
+          .step4-buttons { grid-template-columns: 1fr; }
+        }
       `}</style>
 
       {/* Paywall Modal */}
@@ -914,13 +933,13 @@ export default function App() {
       )}
 
       {/* Header */}
-      <div style={{ borderBottom: "1px solid #e4e4e4", background: "#fff", padding: "0 32px" }}>
-        <div style={{ maxWidth: "760px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: "56px" }}>
+      <div style={{ borderBottom: "1px solid #e4e4e4", background: "#fff", padding: "0 16px" }}>
+        <div className="header-inner" style={{ maxWidth: "760px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: "56px" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
             <span style={{ fontWeight: "800", fontSize: "17px", letterSpacing: "-0.5px" }}>ResumeJD</span>
-            <span style={{ fontSize: "11px", color: "#999", letterSpacing: "0.1px" }}>AI resume tailored to your job description</span>
+            <span className="header-tagline" style={{ fontSize: "11px", color: "#999", letterSpacing: "0.1px" }}>AI resume tailored to your job description</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             {step > 0 && step < 4 && (
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 {STEPS.map((s, i) => (
@@ -944,7 +963,7 @@ export default function App() {
             {!authLoading && (() => {
               const limit = user ? AUTH_LIMIT : GUEST_LIMIT;
               return (
-                <span style={{ fontSize: "11px", color: genCount >= limit ? "#dc2626" : "#888", background: "#f4f4f4", padding: "3px 8px", borderRadius: "20px" }}>
+                <span className="gen-counter" style={{ fontSize: "11px", color: genCount >= limit ? "#dc2626" : "#888", background: "#f4f4f4", padding: "3px 8px", borderRadius: "20px" }}>
                   {genCount}/{limit} free{genCount >= limit ? ` · resets in ${resetCountdown}` : ""}
                 </span>
               );
@@ -968,7 +987,7 @@ export default function App() {
       </div>
 
       {/* Main */}
-      <div style={{ maxWidth: step === 4 ? "860px" : "640px", margin: "0 auto", padding: "40px 24px 80px" }}>
+      <div className="main-container" style={{ maxWidth: step === 4 ? "860px" : "640px", margin: "0 auto", padding: "40px 24px 80px" }}>
 
 
         {/* STEP 0: Upload Resume */}
@@ -978,7 +997,7 @@ export default function App() {
             <p style={{ color: "#666", fontSize: "14px", marginBottom: "32px" }}>Paste your resume and a job description. The AI rewrites your resume from scratch to match the role — honest, no fabrication.</p>
 
             {/* Feature highlights */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginBottom: "32px" }}>
+            <div className="feature-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginBottom: "32px" }}>
               {[
                 { icon: "🎯", title: "Tailored to the JD", desc: "Every bullet rewritten using the job's exact keywords and requirements." },
                 { icon: "🧠", title: "Remembers Your Background", desc: "Sign in and the AI learns from every resume you upload — getting sharper each time." },
@@ -1124,12 +1143,12 @@ export default function App() {
         {/* STEP 4: Result */}
         {step === 4 && generated && (
           <div className="fade-in">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "12px" }}>
+            <div className="step4-top" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", gap: "12px" }}>
               <div>
                 <h1 style={{ fontSize: "20px", fontWeight: "700", marginBottom: "3px" }}>Your Tailored Resume</h1>
                 <p style={{ color: "#888", fontSize: "13px" }}>Theme: {selectedTheme.name}</p>
               </div>
-              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              <div className="step4-buttons" style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 <button className="btn-ghost" onClick={() => { setGenerated(null); setStep(2); }}>Change Theme</button>
                 <button className="btn-ghost" onClick={() => { setGenerated(null); setStep(1); }}>Edit JD</button>
                 <button className="btn-ghost" onClick={handleDownloadDOCX} disabled={docxLoading}>
@@ -1255,7 +1274,7 @@ export default function App() {
               ))}
             </div>
 
-            <div style={{ borderRadius: "8px", overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.1)" }}>
+            <div className="resume-scroll" style={{ borderRadius: "8px", boxShadow: "0 4px 24px rgba(0,0,0,0.1)" }}>
               <ResumePreview data={generated} theme={selectedTheme} />
             </div>
 
