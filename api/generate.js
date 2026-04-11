@@ -104,10 +104,11 @@ export default async function handler(req, res) {
 
   const prompt = `You are a professional resume writer. Rewrite the resume below to target the job description. Follow these rules exactly:
 
-1. HONESTY: Do not fabricate work history, past responsibilities, or core achievements. Only rephrase existing content from the resume to highlight its relevance to the JD.
-2. NATURAL PHRASING: All rephrasing must flow naturally and professionally. Do not force keywords or over-exaggerate if it makes the sentence sound unnatural or impossible based on the original text.
-3. PERMITTED SKILL ADDITIONS: The only exception to rule 1 — you may add highly relevant skills or basic certifications to the Skills section if they are requested in the JD and can realistically be acquired within 3–6 months (e.g. Advanced Excel, Sage, Xero, QuickBooks, SAP basics, Google Sheets). Add these to Skills only, not to experience bullets.
-4. UNFILLED GAPS: If critical JD requirements cannot be met by naturally rephrasing the resume, do not invent experience to bridge them. Omit them from the resume body and list them in the GAPS field.
+1. HONESTY: Do not fabricate work history, past responsibilities, or core achievements. Only rephrase existing content from the provided resumes to highlight its relevance to the JD.
+2. NATURAL PHRASING: All rephrasing must flow naturally and professionally. Do not force keywords or over-exaggerate if it makes the sentence sound unnatural.
+3. PERMITTED SKILL ADDITIONS: You may add easily acquirable skills to the Skills section if requested in the JD — things like MS Excel, ERP systems, QuickBooks, Sage, Xero, SAP basics, Google Sheets, or similar software that can be learned in 3–6 months. Add to Skills section only.
+4. UNFILLED GAPS: If critical JD requirements cannot be met, list them in GAPS only — do not invent experience.
+5. MEMORY & RELEVANCE: If past resume versions are provided and contain job roles more relevant to this JD than the current resume, use those roles in the output. Always pick the most JD-relevant real job entries from across all provided resumes. Never fabricate a job — only use roles that actually exist in one of the provided resumes.
 
 OUTPUT FORMAT:
 MATCH_SCORE: [0-100]
@@ -131,7 +132,7 @@ BULLET: [achievement]
 RESUME:
 ${resumeText}
 ${pastResumes.length > 0 ? `
-PAST RESUME VERSIONS:
+PAST RESUME VERSIONS (use roles from these if more relevant to the JD):
 ${pastResumes.map((r, i) => `[v${i + 1}]\n${r}`).join("\n---\n")}
 ` : ""}
 JOB DESCRIPTION:
@@ -149,7 +150,7 @@ BEGIN OUTPUT:`;
   ];
 
   // Compact fallback prompt for small models
-  const smallPrompt = `Rewrite the resume to target the job description. (1) Only rephrase existing content, no fabrication. (2) Natural phrasing only. (3) Add short-term learnable skills to Skills if JD requires them. (4) List unmet JD requirements in GAPS. Output plain text only.
+  const smallPrompt = `Rewrite the resume to target the job description. Rules: (1) Only rephrase real content from the resumes provided — no fabrication of experience. (2) Natural phrasing only. (3) Add easily acquirable skills (Excel, ERP, QuickBooks, Sage, etc.) to Skills if JD requires them. (4) If past resume versions have more relevant roles for this JD, use those. (5) List unmet requirements in GAPS. Output plain text only.
 
 OUTPUT FORMAT:
 MATCH_SCORE: [0-100]
@@ -226,10 +227,7 @@ BEGIN OUTPUT:`;
   const text = (data.choices?.[0]?.message?.content || "").trim();
   if (!text) return res.status(500).json({ error: "No response from AI" });
 
-  console.log("=== RAW AI OUTPUT ===\n", text.slice(0, 2000));
-
   const parsed = parseOutput(text);
-  console.log("=== PARSED EXPERIENCE ===\n", JSON.stringify(parsed.experience));
   if (!parsed.name) {
     return res.status(500).json({ error: `Could not parse output. Raw start: ${text.slice(0, 300)}` });
   }
