@@ -188,21 +188,52 @@ BEGIN OUTPUT:`;
 
   // Per-model config
   const MODELS = [
-    { id: "llama-3.3-70b-versatile", maxTokens: 4096 },
-    { id: "llama-3.1-8b-instant",    maxTokens: 2800 },
-    { id: "llama3-8b-8192",          maxTokens: 2800 },
+    { id: "llama-3.3-70b-versatile", maxTokens: 4096, small: false },
+    { id: "llama-3.1-8b-instant",    maxTokens: 2048, small: true  },
+    { id: "llama3-8b-8192",          maxTokens: 2048, small: true  },
   ];
+
+  // Compact fallback prompt for small models — same rules, far fewer tokens
+  const smallPrompt = `Rewrite this resume to target the job description. Output plain text only.
+
+RULES:
+- Only use real companies/titles from the resume — never invent jobs or use [brackets]
+- Each job and education entry appears exactly once
+- Skills: hard skills and tools only (software, certifications, technical methods). No soft skills, no generic phrases.
+- Add implied tools for their industry (Excel/Sheets for finance, QuickBooks/Sage interchangeable, SAP basics for ops, etc.)
+- Paraphrase experience bullets using JD keywords — 5-6 bullets per job
+- True gaps only: list in GAPS and REASON
+
+OUTPUT FORMAT:
+MATCH_SCORE: [0-100]
+RECOMMENDATION: [APPLY or APPLY_WITH_CAUTION or RECONSIDER]
+REASON: [2-3 sentences]
+COVERED: [req | req]
+BRIDGED: [req | req]
+GAPS: [req | req]
+NAME: [name]
+CONTACT: [phone | email | LinkedIn | City Province]
+SUMMARY: [3 sentences, first person]
+SKILLS: [hard skills only, comma-separated]
+JOB: [title] | [company] | [location] | [dates]
+BULLET: [verb + keyword + context]
+(5-6 bullets per job, repeat for each position)
+EDU: [degree] | [school] | [location] | [year]
+BULLET: [achievement]
+
+RESUME:
+${resumeText.slice(0, 1800)}
+
+JOB DESCRIPTION:
+${jobDescription.slice(0, 1200)}
+
+BEGIN OUTPUT:`;
 
   let data = null;
   let lastError = null;
 
-  for (const { id: model, maxTokens } of MODELS) {
-    const isSmall = maxTokens <= 2800;
-    const resumeInput = isSmall ? resumeText.slice(0, 3000) : resumeText;
-    const jdInput     = isSmall ? jobDescription.slice(0, 2000) : jobDescription;
-    const promptToSend = prompt
-      .replace(resumeText, resumeInput)
-      .replace(jobDescription, jdInput);
+  for (const { id: model, maxTokens, small } of MODELS) {
+    const promptToSend = small ? smallPrompt : prompt;
 
     const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
