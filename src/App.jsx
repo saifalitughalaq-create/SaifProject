@@ -335,7 +335,8 @@ const THEMES = [
 const STEPS = ["Resume", "Job Description", "Theme", "Generate"];
 const GUEST_LIMIT = 5;   // daily generations without sign-in
 const AUTH_LIMIT  = 5;   // daily generations after sign-in
-const LS_KEY = "rt_gens";
+const LS_KEY = "rt_gens_v2";      // bump to force-reset all guest browser counts
+const RESET_EPOCH = "v2";         // bump to force-reset all Firestore user counts
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
@@ -365,15 +366,18 @@ async function getFirestoreCount(uid) {
   const snap = await getDoc(doc(db, "users", uid));
   if (!snap.exists()) return 0;
   const data = snap.data();
+  if (data.resetEpoch !== RESET_EPOCH) return 0; // force-reset: old epoch = start fresh
   if (data.date !== todayStr()) return 0;
   return data.gens || 0;
 }
 async function incFirestoreCount(uid) {
   const snap = await getDoc(doc(db, "users", uid));
   const data = snap.exists() ? snap.data() : {};
-  const todayCount = (data.date === todayStr() ? (data.gens || 0) : 0) + 1;
+  // If epoch doesn't match, treat prior count as 0 (force-reset)
+  const prevGens = data.resetEpoch === RESET_EPOCH && data.date === todayStr() ? (data.gens || 0) : 0;
+  const todayCount = prevGens + 1;
   const totalGens = (data.totalGens || 0) + 1;
-  await setDoc(doc(db, "users", uid), { gens: todayCount, date: todayStr(), totalGens }, { merge: true });
+  await setDoc(doc(db, "users", uid), { gens: todayCount, date: todayStr(), totalGens, resetEpoch: RESET_EPOCH }, { merge: true });
   return totalGens;
 }
 
