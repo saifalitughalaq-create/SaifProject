@@ -280,22 +280,37 @@ BEGIN OUTPUT (first line: MATCH_SCORE:):`;
     return res.status(500).json({ error: `Could not parse output. Raw start: ${text.slice(0, 300)}` });
   }
 
-  // Hard filter: remove any fabricated job entries
-  // A job is fabricated if its company/title contains placeholder brackets
-  // OR if neither the company name nor job title appears anywhere in any resume text
   const allResumeText = [resumeText, ...pastResumes].join(" ").toLowerCase();
+
+  // 1. Remove fabricated job entries (placeholders or company not in any resume)
   parsed.experience = parsed.experience.filter(job => {
     const company = (job.company || "").toLowerCase();
     const title   = (job.title   || "").toLowerCase();
-    // Strip if placeholder brackets present
     if (company.includes("[") || company.includes("]") ||
         title.includes("[")   || title.includes("]")) return false;
-    // Strip if neither company nor title words appear in any resume version
     const companyWords = company.split(/[\s|,]+/).filter(w => w.length > 3);
     const titleWords   = title.split(/[\s|,]+/).filter(w => w.length > 3);
     const allWords = [...companyWords, ...titleWords];
-    if (allWords.length === 0) return true; // can't validate, keep it
+    if (allWords.length === 0) return true;
     return allWords.some(w => allResumeText.includes(w));
+  });
+
+  // 2. Deduplicate jobs — keep only the first occurrence of each company+title
+  const seenJobs = new Set();
+  parsed.experience = parsed.experience.filter(job => {
+    const key = `${job.title}|${job.company}`.toLowerCase().trim();
+    if (seenJobs.has(key)) return false;
+    seenJobs.add(key);
+    return true;
+  });
+
+  // 3. Deduplicate education — keep only the first occurrence of each degree+school
+  const seenEdu = new Set();
+  parsed.education = parsed.education.filter(edu => {
+    const key = `${edu.degree}|${edu.school}`.toLowerCase().trim();
+    if (seenEdu.has(key)) return false;
+    seenEdu.add(key);
+    return true;
   });
 
   return res.status(200).json(parsed);
