@@ -333,19 +333,34 @@ const THEMES = [
 ];
 
 const STEPS = ["Resume", "Job Description", "Theme", "Generate"];
-const GUEST_LIMIT = 5;   // generations without sign-in
-const AUTH_LIMIT  = 5;   // additional generations after sign-in
+const GUEST_LIMIT = 5;   // daily generations without sign-in
+const AUTH_LIMIT  = 5;   // daily generations after sign-in
 const LS_KEY = "rt_gens";
 
-const getLocalCount = () => parseInt(localStorage.getItem(LS_KEY) || "0", 10);
-const incLocalCount = () => localStorage.setItem(LS_KEY, getLocalCount() + 1);
+const todayStr = () => new Date().toISOString().slice(0, 10);
+
+const getLocalCount = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
+    if (stored.date !== todayStr()) return 0;
+    return stored.count || 0;
+  } catch { return 0; }
+};
+const incLocalCount = () => {
+  const count = getLocalCount();
+  localStorage.setItem(LS_KEY, JSON.stringify({ count: count + 1, date: todayStr() }));
+};
 
 async function getFirestoreCount(uid) {
   const snap = await getDoc(doc(db, "users", uid));
-  return snap.exists() ? (snap.data().gens || 0) : 0;
+  if (!snap.exists()) return 0;
+  const data = snap.data();
+  if (data.date !== todayStr()) return 0;
+  return data.gens || 0;
 }
 async function incFirestoreCount(uid) {
-  await setDoc(doc(db, "users", uid), { gens: increment(1) }, { merge: true });
+  const count = await getFirestoreCount(uid);
+  await setDoc(doc(db, "users", uid), { gens: count + 1, date: todayStr() }, { merge: true });
 }
 
 const generateResume = async (resumeText, jobDescription) => {
@@ -718,10 +733,12 @@ export default function App() {
             onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: "36px", marginBottom: "16px" }}>⚡</div>
             <h2 style={{ fontSize: "20px", fontWeight: "700", marginBottom: "8px" }}>
-              {user ? `You've used all ${AUTH_LIMIT} signed-in generations` : `You've used all ${GUEST_LIMIT} guest generations`}
+              {user ? `Daily limit reached` : `You've used today's ${GUEST_LIMIT} free generations`}
             </h2>
             <p style={{ color: "#666", fontSize: "13px", lineHeight: "1.6", marginBottom: "24px" }}>
-              {user ? "Upgrade to Pro for unlimited tailored resumes." : `Sign in with Google for ${AUTH_LIMIT} more free generations, or upgrade for unlimited.`}
+              {user
+                ? `You've used all ${AUTH_LIMIT} generations for today. Come back tomorrow for ${AUTH_LIMIT} more free, or upgrade to Pro for unlimited.`
+                : `Sign in with Google to get ${AUTH_LIMIT} more free generations today. Limits reset daily.`}
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               {!user && isFirebaseReady && (
