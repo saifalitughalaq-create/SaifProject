@@ -685,96 +685,226 @@ export default function App() {
     return texts.join("\n");
   };
 
-  // ── Exact DOCX theme extraction via raw XML (JSZip) ───────────────────────
+  // ── Exact DOCX theme — reads raw XML, builds styles with actual values ─────
   const extractThemeFromDocx = async (file) => {
     const { default: JSZip } = await import("jszip");
-    const arrayBuffer = await file.arrayBuffer();
-    const zip = await JSZip.loadAsync(arrayBuffer);
+    const zip = await JSZip.loadAsync(await file.arrayBuffer());
 
-    // Strip XML namespace prefixes so querySelectorAll works normally
+    // Strip all namespace prefixes so querySelectorAll works without NS magic
     const strip = (xml) => xml.replace(/[a-zA-Z0-9]+:/g, "");
     const parse = async (path) => {
       const f = zip.file(path);
-      if (!f) return null;
-      return new DOMParser().parseFromString(strip(await f.async("string")), "text/xml");
+      return f ? new DOMParser().parseFromString(strip(await f.async("string")), "text/xml") : null;
     };
 
-    // Helper: read a hex color from an element that contains <srgbClr val="…"> or <sysClr lastClr="…">
-    const hexFromEl = (el) => {
+    // half-points (Word unit) → px  (1 pt = 1.333 px)
+    const hpToPx = (hp) => Math.round(parseInt(hp || "24") / 2 * 1.333) + "px";
+
+    // hex color from srgbClr / sysClr element
+    const colorOf = (el) => {
       if (!el) return null;
-      const srgb = el.querySelector("srgbClr");
-      const sys  = el.querySelector("sysClr");
-      const raw  = srgb?.getAttribute("val") || sys?.getAttribute("lastClr") || "";
-      return raw.length === 6 ? "#" + raw.toLowerCase() : null;
+      const v = el.querySelector("srgbClr")?.getAttribute("val")
+             || el.querySelector("sysClr")?.getAttribute("lastClr") || "";
+      return v.length === 6 ? "#" + v.toLowerCase() : null;
     };
 
-    let bgHex = "#ffffff", textHex = "#1a1a1a", accentHex = "#2e74b5";
-    let fontFamily = "sans", nameCaps = false, nameCentered = false, nameItalic = false;
+    // direct val= attribute on an element (after namespace stripping)
+    const val = (el, attr = "val") => el?.getAttribute(attr) ?? null;
 
-    // ── 1. Theme XML — exact accent / bg / text colors ────────────────────
-    const themeDoc = await parse("word/theme/theme1.xml") || await parse("word/theme/theme.xml");
+    // ── base colours from theme ─────────────────────────────────────────────
+    let bgColor     = "#ffffff";
+    let bodyColor   = "#1a1a1a";
+    let accentColor = "#2e74b5";
+    let majorFont   = "Calibri Light, Arial, sans-serif";
+    let minorFont   = "Calibri, Arial, sans-serif";
+
+    const themeDoc = await parse("word/theme/theme1.xml") ?? await parse("word/theme/theme.xml");
     if (themeDoc) {
-      bgHex     = hexFromEl(themeDoc.querySelector("lt1"))  || bgHex;
-      textHex   = hexFromEl(themeDoc.querySelector("dk1"))  || textHex;
-      // Prefer accent1, fall back to dk2 (often used as nav/sidebar color)
-      accentHex = hexFromEl(themeDoc.querySelector("accent1"))
-               || hexFromEl(themeDoc.querySelector("dk2"))
-               || accentHex;
-
-      const maj = themeDoc.querySelector("majorFont latin")?.getAttribute("typeface") || "";
-      const min = themeDoc.querySelector("minorFont latin")?.getAttribute("typeface") || "";
-      const fs  = (maj + " " + min).toLowerCase();
-      if (/georgia|garamond|times|cambria|palatino|book antiqua/.test(fs)) fontFamily = "serif";
-      else if (/courier|consolas|mono/.test(fs)) fontFamily = "mono";
+      bgColor     = colorOf(themeDoc.querySelector("lt1")) ?? bgColor;
+      bodyColor   = colorOf(themeDoc.querySelector("dk1")) ?? bodyColor;
+      accentColor = colorOf(themeDoc.querySelector("accent1"))
+                 ?? colorOf(themeDoc.querySelector("dk2"))
+                 ?? accentColor;
+      const majT = themeDoc.querySelector("majorFont latin")?.getAttribute("typeface");
+      const minT = themeDoc.querySelector("minorFont latin")?.getAttribute("typeface");
+      if (majT) majorFont = `'${majT}', sans-serif`;
+      if (minT) minorFont = `'${minT}', sans-serif`;
     }
 
-    // ── 2. Styles XML — heading 1 color overrides accent, detects caps/center ─
+    // ── parse a style element into rPr / pPr values ──────────────────────────
+    const readStyle = (styleEl) => {
+      if (!styleEl) return {};
+      const rPr = styleEl.querySelector("rPr");
+      const pPr = styleEl.querySelector("pPr");
+
+      const rawColor = val(rPr?.querySelector("color"));
+      const color = rawColor && rawColor !== "auto" && rawColor.length === 6
+        ? "#" + rawColor.toLowerCase() : null;
+
+      const sz   = val(rPr?.querySelector("sz"));          // half-points
+      const szCs = val(rPr?.querySelector("szCs"));
+      const bold  = !!rPr?.querySelector("b");
+      const italic = !!rPr?.querySelector("i");
+      const caps   = !!(rPr?.querySelector("caps") || rPr?.querySelector("smallCaps"));
+      const jc     = val(pPr?.querySelector("jc")) ?? "left";
+      const charSpacing = parseInt(val(rPr?.querySelector("spacing")) ?? "0") / 20; // pt
+
+      // paragraph border → section divider style
+      const pBdr     = pPr?.querySelector("pBdr");
+      const bdrBot   = pBdr?.querySelector("bottom");
+      const bdrLeft  = pBdr?.querySelector("left");
+
+      const bdrColor = (el) => {
+        const c = val(el, "color") ?? "";
+        return c.length === 6 ? "#" + c.toLowerCase() : null;
+      };
+      const bdrThick = (el) => Math.max(1, Math.round(parseInt(val(el, "sz") ?? "4") / 4));
+
+      let borderBottom = "none", borderLeft = "none", paddingLeft = "0";
+      if (bdrBot) {
+        borderBottom = `${bdrThick(bdrBot)}px solid ${bdrColor(bdrBot) ?? accentColor}`;
+      }
+      if (bdrLeft) {
+        borderLeft  = `${bdrThick(bdrLeft)}px solid ${bdrColor(bdrLeft) ?? accentColor}`;
+        paddingLeft = "10px";
+      }
+
+      // paragraph shading (background fill for section headings)
+      const fill = val(pPr?.querySelector("shd"), "fill");
+      const bgFill = fill && fill !== "auto" && fill.length === 6 ? "#" + fill.toLowerCase() : null;
+
+      return { color, sz, bold, italic, caps, jc, charSpacing, borderBottom, borderLeft, paddingLeft, bgFill };
+    };
+
+    // ── find styles by id or name ────────────────────────────────────────────
     const stylesDoc = await parse("word/styles.xml");
+    let nameR = {}, h2R = {}, bodyR = {};
+
     if (stylesDoc) {
-      const h1 = [...stylesDoc.querySelectorAll("style")].find(s => {
-        const id  = s.getAttribute("styleId") || "";
-        const nm  = s.querySelector("name")?.getAttribute("val")?.toLowerCase() || "";
-        return id === "Heading1" || nm === "heading 1" || id === "1";
-      });
-      if (h1) {
-        // Heading color is the dominant accent in Word templates
-        const clrEl = h1.querySelector("rPr color");
-        const clrVal = clrEl?.getAttribute("val") || "";
-        if (clrVal.length === 6 && clrVal !== "auto") accentHex = "#" + clrVal.toLowerCase();
+      const all = [...stylesDoc.querySelectorAll("style")];
+      const find = (...ids) => {
+        for (const id of ids) {
+          const s = all.find(s =>
+            (s.getAttribute("styleId") ?? "").toLowerCase() === id.toLowerCase() ||
+            (s.querySelector("name")?.getAttribute("val") ?? "").toLowerCase() === id.toLowerCase()
+          );
+          if (s) return s;
+        }
+        return null;
+      };
 
-        nameCaps    = !!(h1.querySelector("rPr caps") || h1.querySelector("rPr smallCaps"));
-        nameItalic  = !!h1.querySelector("rPr i");
-        const jc    = h1.querySelector("pPr jc")?.getAttribute("val") || "";
-        nameCentered = jc === "center";
-      }
+      nameR = readStyle(find("Heading1", "heading 1", "Title"));
+      h2R   = readStyle(find("Heading2", "heading 2", "Subtitle"));
+      bodyR = readStyle(find("Normal", "normal", "Body Text", "Default Paragraph Font"));
 
-      // Body font override from Normal style
-      const normal = [...stylesDoc.querySelectorAll("style")].find(s =>
-        (s.getAttribute("styleId") || "").toLowerCase() === "normal" ||
-        (s.querySelector("name")?.getAttribute("val") || "").toLowerCase() === "normal"
-      );
-      if (normal) {
-        const fn = normal.querySelector("rPr rFonts")?.getAttribute("ascii") || "";
-        if (/georgia|garamond|times|cambria|palatino/.test(fn.toLowerCase())) fontFamily = "serif";
-        else if (/courier|consolas/.test(fn.toLowerCase())) fontFamily = "mono";
-      }
+      // Body font name
+      const bodyFontEl = find("Normal", "normal");
+      const bfAscii = bodyFontEl?.querySelector("rPr rFonts")?.getAttribute("ascii") ?? "";
+      if (bfAscii) minorFont = `'${bfAscii}', sans-serif`;
     }
 
-    // ── 3. Document.xml — page background color ───────────────────────────
+    // ── page background from document.xml ────────────────────────────────────
     const docDoc = await parse("word/document.xml");
     if (docDoc) {
-      const pgClr = docDoc.querySelector("background")?.getAttribute("color");
-      if (pgClr && pgClr !== "auto" && pgClr.length === 6) bgHex = "#" + pgClr.toLowerCase();
+      const pg = val(docDoc.querySelector("background"), "color");
+      if (pg && pg !== "auto" && pg.length === 6) bgColor = "#" + pg.toLowerCase();
     }
 
-    return buildThemeFromColors(bgHex, textHex, accentHex, {
-      font: fontFamily,
-      nameCaps,
-      nameItalic,
-      nameCentered,
-      divider: "underline",
-      skillShape: "box",
-    });
+    // ── resolve accent from Heading1 color if present ────────────────────────
+    if (nameR.color) accentColor = nameR.color;
+    else if (h2R.color) accentColor = h2R.color;
+
+    const isDark = ((hex) => {
+      const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+      return (0.299*r + 0.587*g + 0.114*b)/255 < 0.4;
+    })(bgColor);
+
+    const mutedColor = bodyColor + "99";
+    const bodyFontSize = bodyR.sz ? hpToPx(bodyR.sz) : "12px";
+    const readableBody = isDark ? "#c8c0b0" : (bodyR.color ?? bodyColor);
+
+    // ── assemble exact style object ──────────────────────────────────────────
+    return {
+      id: "custom",
+      name: "Custom",
+      desc: "Exact replica from your document",
+      preview: { bg: bgColor, accent: accentColor, text: bodyColor },
+      styles: {
+        page: {
+          background: bgColor,
+          color: bodyColor,
+          fontFamily: minorFont,
+          padding: "48px 56px",
+          minHeight: "560mm",
+        },
+        name: {
+          fontSize: nameR.sz ? hpToPx(nameR.sz) : "28px",
+          fontWeight: nameR.bold ? "700" : "400",
+          fontStyle: nameR.italic ? "italic" : "normal",
+          textTransform: nameR.caps ? "uppercase" : "none",
+          color: accentColor,
+          textAlign: nameR.jc === "center" ? "center" : "left",
+          letterSpacing: nameR.charSpacing ? `${(nameR.charSpacing / 10).toFixed(2)}em` : "0px",
+          fontFamily: majorFont,
+          marginBottom: "4px",
+        },
+        contact: {
+          fontSize: "11px",
+          color: mutedColor,
+          letterSpacing: "0.5px",
+          marginBottom: "28px",
+          textAlign: nameR.jc === "center" ? "center" : "left",
+        },
+        sectionTitle: {
+          fontSize: h2R.sz ? hpToPx(h2R.sz) : "10px",
+          fontWeight: h2R.bold !== false ? "700" : "600",
+          textTransform: h2R.caps ? "uppercase" : "uppercase",
+          color: h2R.color ?? accentColor,
+          background: h2R.bgFill ?? "transparent",
+          borderBottom: h2R.borderBottom !== "none" ? h2R.borderBottom
+            : (h2R.borderLeft === "none" ? `1px solid ${accentColor}44` : "none"),
+          borderLeft: h2R.borderLeft ?? "none",
+          paddingLeft: h2R.paddingLeft ?? "0",
+          paddingBottom: h2R.bgFill ? "5px" : "5px",
+          paddingTop: h2R.bgFill ? "5px" : "0",
+          letterSpacing: "2px",
+          marginBottom: "12px",
+          marginTop: "26px",
+        },
+        jobTitle: {
+          fontSize: bodyFontSize,
+          fontWeight: "700",
+          color: bodyColor,
+        },
+        company: {
+          fontSize: bodyFontSize,
+          color: mutedColor,
+          fontStyle: "italic",
+          marginBottom: "6px",
+        },
+        bullet: {
+          fontSize: bodyFontSize,
+          color: readableBody,
+          lineHeight: "1.75",
+          marginBottom: "4px",
+          paddingLeft: "14px",
+          position: "relative",
+        },
+        summary: {
+          fontSize: bodyFontSize,
+          color: readableBody,
+          lineHeight: "1.8",
+        },
+        skillTag: {
+          background: "transparent",
+          border: "none",
+          color: readableBody,
+          fontSize: bodyFontSize,
+          padding: "0",
+          borderRadius: "0",
+        },
+      },
+    };
   };
 
   const handleThemeUpload = async (file) => {
