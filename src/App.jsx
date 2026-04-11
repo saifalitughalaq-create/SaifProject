@@ -521,7 +521,27 @@ export default function App() {
         import("html2canvas"),
         import("jspdf"),
       ]);
-      const canvas = await html2canvas(el, { scale: 2, useCORS: true, logging: false, backgroundColor: el.style.background || "#ffffff" });
+
+      // Force A4 width (794px @ 96dpi) so PDF is always full size regardless of screen
+      const A4_PX = 794;
+      const prevWidth = el.style.width;
+      const prevMinWidth = el.style.minWidth;
+      el.style.width = `${A4_PX}px`;
+      el.style.minWidth = `${A4_PX}px`;
+
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: el.style.background || "#ffffff",
+        windowWidth: A4_PX,
+        width: A4_PX,
+      });
+
+      // Restore original styles
+      el.style.width = prevWidth;
+      el.style.minWidth = prevMinWidth;
+
       const imgData = canvas.toDataURL("image/jpeg", 0.95);
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       const pw = 210; // A4 width mm
