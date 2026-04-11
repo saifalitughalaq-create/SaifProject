@@ -99,79 +99,39 @@ export default async function handler(req, res) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "API key not configured" });
 
-  const prompt = `You are a professional resume writer. Rewrite the person's resume to maximally target this job description using their real background. Be strategic — use JD language aggressively wherever it fits the person's actual experience.
+  const prompt = `Rewrite the resume below to target the job description. Output plain text only in the exact format shown.
 
-━━━ HARD RULES ━━━
-1. Every JOB line must use the exact company name and job title from the resume — never invent, never use [Company] [Location] [Dates] placeholders
-2. Each job appears EXACTLY ONCE — do not repeat the same company+title combination
-3. Each education entry appears EXACTLY ONCE
-4. Never fabricate credentials that take years to earn (degrees, CPA, PEng, etc.) or invent entirely new job entries
-5. Past resume versions = context only — extract skills/tools from them but do not create extra job entries
-
-━━━ WHAT YOU MAY ADD ━━━
-A. Skills implied by their role and industry (learnable in 3-6 months):
-   Finance/accounting: Excel, Google Sheets, QuickBooks, Sage, SAP basics, Canadian GAAP, GST/HST, bank reconciliation tools
-   Sales/marketing: Salesforce basics, HubSpot, Google Analytics, Mailchimp, Meta Ads
-   Operations/supply chain: SAP basics, ERP fundamentals, inventory management, WMS basics
-   Admin/coordinator: MS Office Suite, Google Workspace, Asana, Trello, Outlook, Teams
-   Any office role: Zoom, process documentation, basic reporting, data entry systems
-
-B. Interchangeable tools — if person has one, they can use the other:
-   QuickBooks ↔ Sage ↔ Xero ↔ FreshBooks | Excel ↔ Google Sheets | SAP ↔ Oracle ↔ Dynamics ↔ NetSuite
-   Salesforce ↔ HubSpot ↔ Zoho | Jira ↔ Asana ↔ Trello ↔ Monday | Slack ↔ Teams ↔ Google Chat
-
-C. Every skill, tool, and certification from ANY past resume version
-
-━━━ REWRITING APPROACH ━━━
-1. Build master profile: current resume + all past versions + inferences above
-2. Read JD — classify each requirement:
-   COVERED = in their background | BRIDGED = transferable experience | GAP = genuinely absent
-3. Every job in the resume MUST appear — never skip a job entry
-4. Write 4–5 bullets per job (max 6) — paraphrase actual responsibilities using JD keywords aggressively
-5. Distribute JD requirements across existing jobs — never create a new job entry
-6. True gaps only (multi-year skills, hard credentials) → GAPS list
-
-━━━ SKILLS SECTION RULES ━━━
-The skills section is driven by the JD — only include what the JD actually cares about.
-
-ALWAYS INCLUDE: technical skills, software, tools, platforms, certifications, methodologies relevant to the JD
-
-INCLUDE ONLY IF JD EXPLICITLY REQUIRES IT: soft skills using the JD's own phrasing (2-3 words max)
-
-NEVER INCLUDE: generic filler — "detail-oriented", "team player", "strong work ethic", "excellent organizational skills", "committed to accuracy"
-
-━━━ OUTPUT FORMAT — plain text only, no markdown ━━━
+OUTPUT FORMAT:
 MATCH_SCORE: [0-100]
 RECOMMENDATION: [APPLY or APPLY_WITH_CAUTION or RECONSIDER]
-REASON: [2-3 sentences: strengths, key gaps, verdict]
-COVERED: [Accounts Payable | Bank Reconciliation | Canadian GAAP | ...]
-BRIDGED: [ERP Systems | Financial Reporting | ...]
-GAPS: [CPA Designation | Salesforce CRM | ...]
+REASON: [2-3 sentences]
+COVERED: [requirement | requirement | ...]
+BRIDGED: [requirement | requirement | ...]
+GAPS: [requirement | requirement | ...]
 NAME: [full name]
-CONTACT: [phone with dashes | email | LinkedIn | City Province — pipe separated, no commas]
-SUMMARY: [3 sentences, first person: I am... I have... I bring... — use JD vocabulary]
-SKILLS: [hard skills and tools only, comma-separated — no soft skills, no filler]
+CONTACT: [phone | email | LinkedIn | City Province]
+SUMMARY: [3 sentences, first person]
+SKILLS: [skills, comma-separated]
 JOB: [title] | [company] | [location] | [dates]
-BULLET: [strong verb + JD keyword + real context — 4 to 5 bullets, max 6]
-BULLET: ...
-BULLET: ...
-BULLET: ...
-(one JOB block per real position — never repeat)
+BULLET: [bullet point]
+BULLET: [bullet point]
+BULLET: [bullet point]
+BULLET: [bullet point]
 EDU: [degree] | [school] | [location] | [year]
-BULLET: [relevant achievement or coursework]
+BULLET: [achievement]
 
-━━━ RESUME ━━━
+RESUME:
 ${resumeText}
 ${pastResumes.length > 0 ? `
-━━━ PAST RESUME VERSIONS (extract skills/tools/certs — do not duplicate job entries) ━━━
+PAST RESUME VERSIONS:
 ${pastResumes.map((r, i) => `[v${i + 1}]\n${r}`).join("\n---\n")}
 ` : ""}
-━━━ JOB DESCRIPTION ━━━
+JOB DESCRIPTION:
 ${jobDescription}
 
 BEGIN OUTPUT:`;
 
-  const systemPrompt = "You are a professional resume writer. Rewrite resumes to maximally target the job description using the person's real background. Use JD language aggressively. Every job in the resume must appear. Write 4-5 bullets per job (max 6). Never invent new job entries or fabricate credentials. Skills = hard skills only. Output plain text only, no markdown. First line must be MATCH_SCORE:";
+  const systemPrompt = "You are a professional resume writer. Output plain text only, no markdown. First line must be MATCH_SCORE:";
 
   // Per-model config
   const MODELS = [
@@ -180,33 +140,27 @@ BEGIN OUTPUT:`;
     { id: "llama3-8b-8192",          maxTokens: 2048, small: true  },
   ];
 
-  // Compact fallback prompt for small models — same rules, far fewer tokens
-  const smallPrompt = `Rewrite this resume to target the job description. Output plain text only.
-
-RULES:
-- Only use real companies/titles from the resume — never invent jobs or use [brackets]
-- Each job and education entry appears exactly once
-- Skills: hard skills and tools only (software, certifications, technical methods). No soft skills, no generic phrases.
-- Add implied tools for their industry (Excel/Sheets for finance, QuickBooks/Sage interchangeable, SAP basics for ops, etc.)
-- Paraphrase experience bullets using JD keywords — 4-5 bullets per job (max 6), expand existing points, no fabrication
-- True gaps only: list in GAPS and REASON
+  // Compact fallback prompt for small models
+  const smallPrompt = `Rewrite the resume to target the job description. Output plain text only.
 
 OUTPUT FORMAT:
 MATCH_SCORE: [0-100]
 RECOMMENDATION: [APPLY or APPLY_WITH_CAUTION or RECONSIDER]
 REASON: [2-3 sentences]
-COVERED: [Accounts Payable | Bank Reconciliation | ...]
-BRIDGED: [ERP Systems | Financial Reporting | ...]
-GAPS: [CPA Designation | Salesforce CRM | ...]
-NAME: [name]
+COVERED: [requirement | requirement | ...]
+BRIDGED: [requirement | requirement | ...]
+GAPS: [requirement | requirement | ...]
+NAME: [full name]
 CONTACT: [phone | email | LinkedIn | City Province]
 SUMMARY: [3 sentences, first person]
-SKILLS: [hard skills only, comma-separated]
+SKILLS: [skills, comma-separated]
 JOB: [title] | [company] | [location] | [dates]
-BULLET: [existing responsibility rephrased — no invented duties]
-(4-5 bullets per job, max 6 — paraphrase only, no fabrication)
+BULLET: [bullet point]
+BULLET: [bullet point]
+BULLET: [bullet point]
+BULLET: [bullet point]
 EDU: [degree] | [school] | [location] | [year]
-BULLET: [achievement or coursework]
+BULLET: [achievement]
 
 RESUME:
 ${resumeText.slice(0, 1800)}
