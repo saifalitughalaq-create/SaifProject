@@ -134,11 +134,11 @@ C. Every skill, tool, and certification from ANY past resume version
 5. If a JD requirement cannot be met by honest rephrasing → list in GAPS
 
 ━━━ EXPERIENCE BULLETS — STRICT RULES ━━━
-- Start from what the resume actually says for each role — do not invent responsibilities
-- Rephrase each existing responsibility to use JD language where it fits naturally
-- Do NOT hit a bullet count by fabricating duties. If the resume has 3 points for a role, output 3 — not 6
-- Do NOT add responsibilities that are not stated or directly implied by what is written
-- A responsibility is "implied" only if it is an inseparable part of the stated task
+- Every job in the resume MUST appear in the output — never skip a job entry
+- If the resume only has a job title and company with no bullet points, write 1-2 bullets based on what that job title naturally involves, then stop
+- If the resume has explicit responsibilities listed, rephrase each one using JD vocabulary — do not add more bullets than responsibilities listed
+- Do NOT invent specific achievements, metrics, or duties that are not stated or directly implied
+- "Implied" means an inseparable part of the stated task only
   (e.g. "processed invoices" implies "verified invoice accuracy" — it does NOT imply "managed vendor relationships")
 
 WRONG: Resume says "filed documents" → Bullet: "Led cross-functional compliance initiatives across 3 departments"
@@ -335,12 +335,21 @@ BEGIN OUTPUT:`;
 
   // 5. Auto-prepend [Unfilled Gaps] to reason when genuine gaps exist
   //    (Rule 3 — enforced here so AI compliance doesn't matter)
+  // 5. Auto-prepend [Unfilled Gaps] to reason when genuine gaps exist
   if (parsed.gaps.length > 0) {
     const gapLabel = `[Unfilled Gaps: ${parsed.gaps.join(", ")}]`;
     if (!parsed.recommendationReason.startsWith("[Unfilled Gaps")) {
       parsed.recommendationReason = `${gapLabel} ${parsed.recommendationReason}`;
     }
   }
+
+  // 6. Strip AI placeholder text from education fields (e.g. "[Year Not Specified]")
+  const stripPlaceholders = (str) => (str || "").replace(/\[.*?\]/g, "").trim();
+  parsed.education = parsed.education.map(edu => ({
+    ...edu,
+    degree: stripPlaceholders(edu.degree),
+    school: stripPlaceholders(edu.school),
+  }));
 
   return res.status(200).json(parsed);
 }
