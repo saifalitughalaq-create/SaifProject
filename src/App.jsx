@@ -472,6 +472,7 @@ export default function App() {
   const [genCount, setGenCount] = useState(0);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [docxLoading, setDocxLoading] = useState(false);
+  const [showMemoryPromo, setShowMemoryPromo] = useState(false);
   const fileRef = useRef();
 
   // Auth listener
@@ -690,6 +691,10 @@ export default function App() {
       } else {
         incLocalCount();
         setGenCount(currentCount + 1);
+        // Show memory promo to guests after first generation (once only)
+        if (!localStorage.getItem("rt_memory_seen")) {
+          setTimeout(() => setShowMemoryPromo(true), 1500);
+        }
       }
       setGenerated(result);
       setStep(4);
@@ -790,6 +795,39 @@ export default function App() {
               </button>
               <button style={{ background: "transparent", border: "none", color: "#888", fontSize: "12px", cursor: "pointer", padding: "4px" }}
                 onClick={() => setShowPaywall(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Resume Memory Promo Modal */}
+      {showMemoryPromo && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}
+          onClick={() => { setShowMemoryPromo(false); localStorage.setItem("rt_memory_seen", "1"); }}>
+          <div style={{ background: "#fff", borderRadius: "16px", padding: "40px 36px", maxWidth: "400px", width: "100%", textAlign: "center" }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: "40px", marginBottom: "16px" }}>🧠</div>
+            <h2 style={{ fontSize: "20px", fontWeight: "700", marginBottom: "10px", letterSpacing: "-0.3px" }}>
+              Your resume gets smarter over time
+            </h2>
+            <p style={{ color: "#555", fontSize: "13px", lineHeight: "1.7", marginBottom: "8px" }}>
+              Sign in with Google and the AI remembers every resume you upload.
+            </p>
+            <p style={{ color: "#555", fontSize: "13px", lineHeight: "1.7", marginBottom: "28px" }}>
+              The more you use it, the better it knows your background — pulling skills and experience from past versions to build a stronger resume each time.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {isFirebaseReady && (
+                <button onClick={async () => { await handleGoogleSignIn(); setShowMemoryPromo(false); localStorage.setItem("rt_memory_seen", "1"); }}
+                  style={{ background: "#1a1a1a", color: "#fff", border: "none", borderRadius: "8px", padding: "13px 20px", fontSize: "13px", cursor: "pointer", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
+                  <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2a10.3 10.3 0 0 0-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92a8.78 8.78 0 0 0 2.68-6.62z"/><path fill="#34A853" d="M9 18a8.6 8.6 0 0 0 5.96-2.18l-2.91-2.26a5.4 5.4 0 0 1-8.07-2.85H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.98 10.71a5.41 5.41 0 0 1 0-3.42V4.96H.96a9 9 0 0 0 0 8.08l3.02-2.33z"/><path fill="#EA4335" d="M9 3.58a4.86 4.86 0 0 1 3.44 1.35l2.58-2.58A8.64 8.64 0 0 0 9 0 9 9 0 0 0 .96 4.96l3.02 2.33A5.36 5.36 0 0 1 9 3.58z"/></svg>
+                  Sign in with Google — it's free
+                </button>
+              )}
+              <button style={{ background: "transparent", border: "none", color: "#aaa", fontSize: "12px", cursor: "pointer", padding: "4px" }}
+                onClick={() => { setShowMemoryPromo(false); localStorage.setItem("rt_memory_seen", "1"); }}>
+                Maybe later
+              </button>
             </div>
           </div>
         </div>
