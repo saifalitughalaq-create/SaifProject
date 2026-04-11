@@ -1055,9 +1055,12 @@ export default function App() {
             <h1 style={{ fontSize: "22px", fontWeight: "700", marginBottom: "6px" }}>Job Description</h1>
             <p style={{ color: "#666", fontSize: "14px", marginBottom: "28px" }}>Paste the full posting — responsibilities, qualifications, requirements.</p>
 
-            <textarea rows={18} value={jobDesc} onChange={(e) => setJobDesc(e.target.value)} placeholder="Paste the full job description here..." />
+            <textarea rows={18} value={jobDesc} onChange={(e) => setJobDesc(e.target.value.slice(0, 6000))} placeholder="Paste the full job description here..." />
+            <div style={{ textAlign: "right", fontSize: "11px", color: jobDesc.length >= 6000 ? "#dc2626" : "#aaa", marginTop: "6px" }}>
+              {jobDesc.length}/6000{jobDesc.length >= 6000 ? " — limit reached" : ""}
+            </div>
 
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "20px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "14px" }}>
               <button className="btn-ghost" onClick={() => setStep(0)}>← Back</button>
               <button className="btn-primary" onClick={() => setStep(2)} disabled={!canNext()}>Continue →</button>
             </div>
