@@ -6,7 +6,10 @@ function stripMarkdown(text) {
 
 function parseOutput(raw) {
   const text = stripMarkdown(raw);
-  const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+  // Strip markdown formatting (bold, italic, headers) so **JOB:** or ## NAME: still parse correctly
+  const lines = text.split("\n")
+    .map(l => l.replace(/^[#*_>\s]+/, "").replace(/[*_`]+/g, "").trim())
+    .filter(Boolean);
 
   const result = {
     matchScore: 0,
