@@ -99,75 +99,68 @@ export default async function handler(req, res) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "API key not configured" });
 
-  const prompt = `You are a professional resume writer. Rewrite the person's resume to maximally target this job description using their real background, past experience, and smart inference. Be strategic, not dishonest.
+  const prompt = `You are a professional resume writer. Rewrite the person's resume to target this job description using their real background only. Be strategic and honest — never fabricate.
 
-━━━ HARD RULES (enforced automatically — violations will be removed) ━━━
-1. Every JOB line must use a real company name and real job title from the resume — never invent, never use [Company] [Location] [Dates] placeholders
+━━━ HARD RULES ━━━
+1. Every JOB line must use the exact company name and job title from the resume — never invent, never use [Company] [Location] [Dates] placeholders
 2. Each job appears EXACTLY ONCE — do not repeat the same company+title combination
 3. Each education entry appears EXACTLY ONCE
-4. Never fabricate metrics, specific numbers, or credentials that take years to earn (degrees, CPA, PEng, etc.)
-5. Past resume versions = context only — extract skills from them but do not create extra job entries
+4. Do not fabricate work history, past responsibilities, or achievements — only rephrase what actually exists in the resume
+5. Do not force JD keywords unnaturally — if a keyword does not genuinely fit the person's real experience, do not use it
+6. Never fabricate metrics, specific numbers, or credentials that take years to earn (degrees, CPA, PEng, etc.)
+7. Past resume versions = context only — extract skills/tools from them but do not create extra job entries
 
-━━━ WHAT YOU MAY ADD (treat as real, include confidently) ━━━
-A. Skills implied by their role and industry (learnable in 3-6 months):
+━━━ PERMITTED ADDITIONS (skills only — not job entries) ━━━
+A. Short-term learnable tools (3-6 months) required by the JD, when the person has relevant background:
    Finance/accounting: Excel, Google Sheets, QuickBooks, Sage, SAP basics, Canadian GAAP, GST/HST, bank reconciliation tools
    Sales/marketing: Salesforce basics, HubSpot, Google Analytics, Mailchimp, Meta Ads
    Operations/supply chain: SAP basics, ERP fundamentals, inventory management, WMS basics
    Admin/coordinator: MS Office Suite, Google Workspace, Asana, Trello, Outlook, Teams
    Any office role: Zoom, process documentation, basic reporting, data entry systems
 
-B. Interchangeable tools — if person has one, they can use the other:
+B. Interchangeable tools — if person knows one, they can use the other:
    QuickBooks ↔ Sage ↔ Xero ↔ FreshBooks | Excel ↔ Google Sheets | SAP ↔ Oracle ↔ Dynamics ↔ NetSuite
    Salesforce ↔ HubSpot ↔ Zoho | Jira ↔ Asana ↔ Trello ↔ Monday | Slack ↔ Teams ↔ Google Chat
    → If JD requires a tool from a family the person knows, include the JD's term in their skills
 
-C. JD-required skills learnable in 3-6 months with relevant background → add directly, not as a gap
-
-D. Every skill, tool, and certification from ANY past resume version
+C. Every skill, tool, and certification from ANY past resume version
 
 ━━━ REWRITING APPROACH ━━━
-1. Build master profile: current resume + all past versions + inferences above
+1. Build master profile: current resume + all past versions + permitted additions above
 2. Read JD — classify each requirement:
-   COVERED = in their background or inferable | BRIDGED = transferable experience | GAP = genuinely absent
-3. Rewrite each real job with 5-6 bullets using JD language — paraphrase the same real work aggressively to match keywords
-4. Distribute JD requirements across existing jobs — never create a new job entry to fill a gap
-5. True gaps (multi-year skills, hard credentials) → GAPS list + honest REASON
+   COVERED = clearly in their background | BRIDGED = transferable experience addresses it | GAP = genuinely absent
+3. Rewrite each real job with 5-6 bullets — rephrase actual responsibilities using JD vocabulary where it fits naturally
+4. Distribute JD requirements across existing jobs only — never create a new job entry to fill a gap
+5. If a JD requirement absolutely cannot be met by honest rephrasing → list in GAPS
 
 ━━━ SKILLS SECTION RULES ━━━
 The skills section is driven by the JD — only include what the JD actually cares about.
 
 ALWAYS INCLUDE: technical skills, software, tools, platforms, certifications, methodologies that appear in or are relevant to the JD
-   Examples: QuickBooks, SAP ERP, Advanced Excel, Canadian GAAP, GST/HST compliance, Salesforce, Google Analytics, AutoCAD, Python
 
-INCLUDE ONLY IF THE JD EXPLICITLY REQUIRES IT: soft skills or interpersonal skills
-   Example: if JD says "strong written and verbal communication required" → include "Professional Communication"
-   Example: if JD says "cross-functional collaboration" → include "Cross-functional Collaboration"
-   Use the JD's own phrasing, keep it concise (2-3 words max per soft skill)
+INCLUDE ONLY IF JD EXPLICITLY REQUIRES IT: soft skills, using the JD's own phrasing (2-3 words max)
+   Example: JD says "cross-functional collaboration" → include "Cross-functional Collaboration"
 
-NEVER INCLUDE: generic personality traits or abstract phrases not tied to any JD requirement
-   Never: "detail-oriented", "hard worker", "team player", "ability to work independently", "strong work ethic", "excellent organizational skills", "understanding of [broad field]", "committed to accuracy"
-   These are filler — if they matter, they show up naturally in the experience bullets
-
-The result: a tight, JD-targeted list of mostly hard skills with only the soft skills the employer specifically asked for
+NEVER INCLUDE: generic filler — "detail-oriented", "team player", "strong work ethic", "excellent organizational skills", "committed to accuracy", "ability to work independently"
 
 ━━━ OUTPUT FORMAT — plain text only, no markdown ━━━
 MATCH_SCORE: [0-100]
 RECOMMENDATION: [APPLY or APPLY_WITH_CAUTION or RECONSIDER]
-REASON: [2-3 sentences: strengths, key gaps, verdict]
+REASON: [2-3 sentences: strengths, key gaps, honest verdict]
 COVERED: [req | req | ...]
 BRIDGED: [req | req | ...]
 GAPS: [genuine missing req | ...]
 NAME: [full name]
 CONTACT: [phone with dashes | email | LinkedIn | City Province — pipe separated, no commas]
 SUMMARY: [3 sentences, first person: I am... I have... I bring... — use JD vocabulary]
-SKILLS: [hard skills and tools only, comma-separated — no soft skills, no abstract phrases]
+SKILLS: [hard skills and tools only, comma-separated — no soft skills, no filler phrases]
 JOB: [title] | [company] | [location] | [dates]
-BULLET: [strong verb + JD keyword + real context]
-BULLET: [strong verb + JD keyword + real context]
-BULLET: [strong verb + JD keyword + real context]
-BULLET: [strong verb + JD keyword + real context]
-BULLET: [strong verb + JD keyword + real context]
-BULLET: [strong verb + JD keyword + real context]
+BULLET: [strong verb + real responsibility rephrased with JD keyword]
+BULLET: [strong verb + real responsibility rephrased with JD keyword]
+BULLET: [strong verb + real responsibility rephrased with JD keyword]
+BULLET: [strong verb + real responsibility rephrased with JD keyword]
+BULLET: [strong verb + real responsibility rephrased with JD keyword]
+BULLET: [strong verb + real responsibility rephrased with JD keyword]
 (one JOB block per real position — never repeat)
 EDU: [degree] | [school] | [location] | [year]
 BULLET: [relevant achievement]
@@ -284,14 +277,18 @@ BEGIN OUTPUT:`;
 
   const allResumeText = [resumeText, ...pastResumes].join(" ").toLowerCase();
 
-  // 1. Remove fabricated job entries (placeholders or company not in any resume)
+  // 1. Remove fabricated job entries (bracket placeholders only)
+  // Note: job.company = "Company | Location | Dates" — only check the company name segment
   parsed.experience = parsed.experience.filter(job => {
-    const company = (job.company || "").toLowerCase();
-    const title   = (job.title   || "").toLowerCase();
-    if (company.includes("[") || company.includes("]") ||
-        title.includes("[")   || title.includes("]")) return false;
-    const companyWords = company.split(/[\s|,]+/).filter(w => w.length > 3);
-    const titleWords   = title.split(/[\s|,]+/).filter(w => w.length > 3);
+    const companyFull = (job.company || "").toLowerCase();
+    const companyName = companyFull.split("|")[0].trim(); // company name only, not location/dates
+    const title       = (job.title   || "").toLowerCase();
+    // Reject obvious placeholder text with brackets
+    if (companyFull.includes("[") || companyFull.includes("]") ||
+        title.includes("[")       || title.includes("]")) return false;
+    // Check at least one meaningful word from company name or title exists in resume
+    const companyWords = companyName.split(/\s+/).filter(w => w.length > 3);
+    const titleWords   = title.split(/\s+/).filter(w => w.length > 3);
     const allWords = [...companyWords, ...titleWords];
     if (allWords.length === 0) return true;
     return allWords.some(w => allResumeText.includes(w));

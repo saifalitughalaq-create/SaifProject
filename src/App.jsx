@@ -339,6 +339,16 @@ const LS_KEY = "rt_gens";
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
+function getResetCountdown() {
+  const now = new Date();
+  const midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0);
+  const diff = midnight - now;
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  return `${h}h ${m}m`;
+}
+
 const getLocalCount = () => {
   try {
     const stored = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
@@ -423,9 +433,9 @@ const ResumePreview = ({ data, theme }) => {
       <div style={s.summary}>{data.summary}</div>
 
       <div style={s.sectionTitle}>Key Skills</div>
-      <div style={{ ...s.summary, marginBottom: "4px" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", marginBottom: "4px", fontSize: s.summary.fontSize, color: s.summary.color, lineHeight: "2" }}>
         {data.skills.map((sk, i) => (
-          <span key={i}>
+          <span key={i} style={{ whiteSpace: "nowrap" }}>
             {i > 0 && <span style={{ color: theme.preview.accent, margin: "0 8px", fontWeight: 700 }}>·</span>}
             {sk}
           </span>
@@ -484,7 +494,14 @@ export default function App() {
   const [docxLoading, setDocxLoading] = useState(false);
   const [showMemoryPromo, setShowMemoryPromo] = useState(false);
   const [savedToast, setSavedToast] = useState(null); // { count: N }
+  const [resetCountdown, setResetCountdown] = useState(getResetCountdown());
   const fileRef = useRef();
+
+  // Update reset countdown every minute
+  useEffect(() => {
+    const id = setInterval(() => setResetCountdown(getResetCountdown()), 60000);
+    return () => clearInterval(id);
+  }, []);
 
   // Auth listener
   useEffect(() => {
@@ -813,11 +830,14 @@ export default function App() {
             <h2 style={{ fontSize: "20px", fontWeight: "700", marginBottom: "8px" }}>
               {user ? `Daily limit reached` : `You've used today's ${GUEST_LIMIT} free generations`}
             </h2>
-            <p style={{ color: "#666", fontSize: "13px", lineHeight: "1.6", marginBottom: "24px" }}>
+            <p style={{ color: "#666", fontSize: "13px", lineHeight: "1.6", marginBottom: "8px" }}>
               {user
                 ? `You've used all ${AUTH_LIMIT} generations for today. Come back tomorrow for ${AUTH_LIMIT} more free, or upgrade to Pro for unlimited.`
                 : `Sign in with Google to get ${AUTH_LIMIT} more free generations today. Limits reset daily.`}
             </p>
+            <div style={{ display: "inline-block", background: "#f4f4f4", borderRadius: "20px", padding: "4px 14px", fontSize: "12px", color: "#666", marginBottom: "20px" }}>
+              Resets in <strong style={{ color: "#1a1a1a" }}>{resetCountdown}</strong>
+            </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               {!user && isFirebaseReady && (
                 <button onClick={async () => { await handleGoogleSignIn(); setShowPaywall(false); }}
@@ -925,7 +945,7 @@ export default function App() {
               const limit = user ? AUTH_LIMIT : GUEST_LIMIT;
               return (
                 <span style={{ fontSize: "11px", color: genCount >= limit ? "#dc2626" : "#888", background: "#f4f4f4", padding: "3px 8px", borderRadius: "20px" }}>
-                  {genCount}/{limit} free
+                  {genCount}/{limit} free{genCount >= limit ? ` · resets in ${resetCountdown}` : ""}
                 </span>
               );
             })()}
