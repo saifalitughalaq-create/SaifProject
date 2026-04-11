@@ -101,6 +101,9 @@ export default async function handler(req, res) {
 
   const prompt = `You are an expert resume strategist. Your job is to build the strongest possible resume by combining everything known about this person — their current resume, all past resume versions, and smart professional inference — then target it precisely to the job description.
 
+⚠️ CRITICAL — READ FIRST:
+Every JOB line you output MUST match a real company and real job title that exists word-for-word in the resume provided. If you cannot find a real company name, do NOT output that JOB line at all. NEVER write [Company], [Location], [Dates], or any bracket placeholders. NEVER invent a job that is not in the input resume. Fabricated jobs will be automatically detected and removed.
+
 ABSOLUTE RULES — NEVER BREAK:
 - Each real job from the resume must appear EXACTLY ONCE — never repeat the same company/title combination
 - NEVER create a JOB entry that does not exist in the resume — only real companies, real titles, real dates
@@ -276,6 +279,24 @@ BEGIN OUTPUT (first line: MATCH_SCORE:):`;
   if (!parsed.name) {
     return res.status(500).json({ error: `Could not parse output. Raw start: ${text.slice(0, 300)}` });
   }
+
+  // Hard filter: remove any fabricated job entries
+  // A job is fabricated if its company/title contains placeholder brackets
+  // OR if neither the company name nor job title appears anywhere in any resume text
+  const allResumeText = [resumeText, ...pastResumes].join(" ").toLowerCase();
+  parsed.experience = parsed.experience.filter(job => {
+    const company = (job.company || "").toLowerCase();
+    const title   = (job.title   || "").toLowerCase();
+    // Strip if placeholder brackets present
+    if (company.includes("[") || company.includes("]") ||
+        title.includes("[")   || title.includes("]")) return false;
+    // Strip if neither company nor title words appear in any resume version
+    const companyWords = company.split(/[\s|,]+/).filter(w => w.length > 3);
+    const titleWords   = title.split(/[\s|,]+/).filter(w => w.length > 3);
+    const allWords = [...companyWords, ...titleWords];
+    if (allWords.length === 0) return true; // can't validate, keep it
+    return allWords.some(w => allResumeText.includes(w));
+  });
 
   return res.status(200).json(parsed);
 }
