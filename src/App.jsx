@@ -473,6 +473,7 @@ export default function App() {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [docxLoading, setDocxLoading] = useState(false);
   const [showMemoryPromo, setShowMemoryPromo] = useState(false);
+  const [savedToast, setSavedToast] = useState(null); // { count: N }
   const fileRef = useRef();
 
   // Auth listener
@@ -688,6 +689,11 @@ export default function App() {
           saveResumeToHistory(user.uid, resumeText),
         ]);
         setGenCount(currentCount + 1);
+        // Show saved toast
+        const history = await getPastResumes(user.uid);
+        const count = history.length;
+        setSavedToast({ count });
+        setTimeout(() => setSavedToast(null), 4000);
       } else {
         incLocalCount();
         setGenCount(currentCount + 1);
@@ -717,6 +723,10 @@ export default function App() {
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: #eee; }
         ::-webkit-scrollbar-thumb { background: #ccc; }
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateX(-50%) translateY(16px); }
+          to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
         .btn-primary {
           background: #1a1a1a; color: #fff; border: none;
           padding: 11px 28px; border-radius: 6px; font-size: 13px;
@@ -828,6 +838,27 @@ export default function App() {
                 onClick={() => { setShowMemoryPromo(false); localStorage.setItem("rt_memory_seen", "1"); }}>
                 Maybe later
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Resume Saved Toast */}
+      {savedToast && (
+        <div style={{
+          position: "fixed", bottom: "28px", left: "50%", transform: "translateX(-50%)",
+          zIndex: 2000, background: "#111", color: "#fff", borderRadius: "12px",
+          padding: "14px 22px", display: "flex", alignItems: "center", gap: "12px",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.22)", fontSize: "13px", fontWeight: "500",
+          animation: "slideUp 0.3s ease",
+        }}>
+          <span style={{ fontSize: "20px" }}>🧠</span>
+          <div>
+            <div style={{ fontWeight: "700", marginBottom: "2px" }}>Resume saved to your memory</div>
+            <div style={{ fontSize: "11px", color: "#aaa" }}>
+              {savedToast.count === 1
+                ? "First resume stored — AI will use this next time"
+                : `${savedToast.count} resumes in memory — AI is getting smarter`}
             </div>
           </div>
         </div>
