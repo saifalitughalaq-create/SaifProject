@@ -275,11 +275,9 @@ BEGIN OUTPUT:`;
     return res.status(500).json({ error: `Could not parse output. Raw start: ${text.slice(0, 300)}` });
   }
 
-  const allResumeText = [resumeText, ...pastResumes].join(" ").toLowerCase();
+  // ── Post-processing: enforce rules in code regardless of AI compliance ──
 
   // 1. Remove fabricated job entries — bracket placeholders only
-  // Word-matching was too aggressive and removed legitimate jobs, so we only
-  // check for obvious AI placeholder text like [Company] or [Location]
   parsed.experience = parsed.experience.filter(job => {
     const company = (job.company || "").toLowerCase();
     const title   = (job.title   || "").toLowerCase();
@@ -304,6 +302,39 @@ BEGIN OUTPUT:`;
     seenEdu.add(key);
     return true;
   });
+
+  // 4. Strip generic soft skills the AI keeps adding despite instructions
+  const BANNED_SKILLS = [
+    "detail-oriented", "detail oriented", "attention to detail",
+    "hard worker", "hard-worker", "strong work ethic", "work ethic",
+    "team player", "team-player", "teamwork", "collaborative",
+    "excellent organizational skills", "organizational skills", "organization skills",
+    "committed to accuracy", "accuracy", "committed to",
+    "ability to work independently", "works independently", "independent worker",
+    "strong communication", "excellent communication", "communication skills",
+    "verbal communication", "written communication", "interpersonal skills",
+    "time management", "multitasking", "multi-tasking",
+    "fast learner", "quick learner", "eager to learn",
+    "problem solver", "problem-solver", "critical thinking",
+    "analytical skills", "self-motivated", "self motivated",
+    "motivated", "proactive", "adaptable", "flexible",
+    "results-oriented", "results oriented", "results-driven", "goal-oriented",
+    "customer-focused", "client-focused", "service-oriented",
+    "strong work", "positive attitude", "willingness to learn",
+  ];
+  parsed.skills = parsed.skills.filter(skill => {
+    const lower = skill.toLowerCase().trim();
+    return !BANNED_SKILLS.some(banned => lower === banned || lower.includes(banned));
+  });
+
+  // 5. Auto-prepend [Unfilled Gaps] to reason when genuine gaps exist
+  //    (Rule 3 — enforced here so AI compliance doesn't matter)
+  if (parsed.gaps.length > 0) {
+    const gapLabel = `[Unfilled Gaps: ${parsed.gaps.join(", ")}]`;
+    if (!parsed.recommendationReason.startsWith("[Unfilled Gaps")) {
+      parsed.recommendationReason = `${gapLabel} ${parsed.recommendationReason}`;
+    }
+  }
 
   return res.status(200).json(parsed);
 }
