@@ -99,7 +99,12 @@ export default async function handler(req, res) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "API key not configured" });
 
-  const prompt = `Rewrite the resume below to target the job description. Output plain text only in the exact format shown.
+  const prompt = `You are a professional resume writer. Rewrite the resume below to target the job description. Follow these rules exactly:
+
+1. HONESTY: Do not fabricate work history, past responsibilities, or core achievements. Only rephrase existing content from the resume to highlight its relevance to the JD.
+2. NATURAL PHRASING: All rephrasing must flow naturally and professionally. Do not force keywords or over-exaggerate if it makes the sentence sound unnatural or impossible based on the original text.
+3. PERMITTED SKILL ADDITIONS: The only exception to rule 1 — you may add highly relevant skills or basic certifications to the Skills section if they are requested in the JD and can realistically be acquired within 3–6 months (e.g. Advanced Excel, Sage, Xero, QuickBooks, SAP basics, Google Sheets). Add these to Skills only, not to experience bullets.
+4. UNFILLED GAPS: If critical JD requirements cannot be met by naturally rephrasing the resume, do not invent experience to bridge them. Omit them from the resume body and list them in the GAPS field at the end.
 
 OUTPUT FORMAT:
 MATCH_SCORE: [0-100]
@@ -131,7 +136,7 @@ ${jobDescription}
 
 BEGIN OUTPUT:`;
 
-  const systemPrompt = "You are a professional resume writer. Output plain text only, no markdown. First line must be MATCH_SCORE:";
+  const systemPrompt = "You are a professional resume writer. Rephrase existing resume content to match the JD — never fabricate work history or achievements. Only add short-term learnable skills (3–6 months) to the Skills section. List any critical unmet JD requirements in GAPS only. Output plain text, no markdown. First line must be MATCH_SCORE:";
 
   // Per-model config
   const MODELS = [
@@ -141,7 +146,7 @@ BEGIN OUTPUT:`;
   ];
 
   // Compact fallback prompt for small models
-  const smallPrompt = `Rewrite the resume to target the job description. Output plain text only.
+  const smallPrompt = `Rewrite the resume to target the job description. Rules: (1) Only rephrase existing content — do not fabricate work history or achievements. (2) Natural phrasing only — do not force keywords. (3) You may add short-term learnable skills (Advanced Excel, Sage, Xero, etc.) to Skills if the JD requires them. (4) List critical unmet JD requirements in GAPS only. Output plain text only.
 
 OUTPUT FORMAT:
 MATCH_SCORE: [0-100]
