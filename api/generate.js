@@ -118,9 +118,28 @@ Based on their industry and role, freely add these to skills and weave into bull
 - Certifications naturally implied: WHMIS for lab/safety, Google Analytics cert for marketing, basic PMP concepts for project coordinators, Canadian GAAP knowledge for Canadian accounting roles
 - Any skill from ANY past resume version — always include these, they are real
 
+INTERCHANGEABLE SKILLS — swap or add when JD requires a tool in the same category:
+If the person has one tool and the JD asks for another in the same family, include BOTH — the person's real one AND the JD's preferred term, since they transfer directly:
+- Accounting software: QuickBooks ↔ Sage ↔ Xero ↔ FreshBooks ↔ Wave (knowing one = basics of all)
+- Spreadsheets: Excel ↔ Google Sheets ↔ Numbers (interchangeable)
+- CRM: Salesforce ↔ HubSpot ↔ Zoho ↔ Pipedrive ↔ Monday CRM
+- Project management: Jira ↔ Asana ↔ Trello ↔ Monday.com ↔ ClickUp
+- ERP: SAP ↔ Oracle ↔ Microsoft Dynamics ↔ NetSuite (basics transfer between all)
+- Communication: Slack ↔ Teams ↔ Google Chat
+- Office suites: MS Office ↔ Google Workspace ↔ LibreOffice
+- Design: Canva ↔ Adobe Express (basic tools); Photoshop ↔ GIMP (intermediate)
+Rule: if the person has any tool in a family and the JD asks for a specific one from that family, add the JD's tool to their skills and mention it naturally in a bullet
+
+3-6 MONTH LEARNABLE SKILLS REQUIRED BY JD:
+If the JD explicitly requires a skill that is learnable in 3-6 months AND the person has closely related background, add it directly to the resume — do not list it as a gap:
+- Required software in their industry they likely picked up (e.g. JD requires QuickBooks, person has accounting experience → add it)
+- Required certifications that are short courses (e.g. JD requires Google Analytics certification, person has marketing background → add it)
+- Required methodologies that come with the role (e.g. JD requires Agile/Scrum basics, person has project coordinator experience → add it)
+Only flag as a GAP if the required skill takes over 6 months to learn OR requires credentials they clearly don't have (CPA, PMP, engineering degree, etc.)
+
 DO NOT ADD:
 - Programming languages or advanced dev skills not mentioned anywhere
-- Full enterprise system admin (full SAP implementation, Salesforce admin, etc.)
+- Full enterprise system admin (full SAP implementation, Salesforce admin cert, etc.)
 - Management of large teams unless stated
 - Any specific numbers or metrics not in any resume version
 
@@ -128,13 +147,13 @@ PAST RESUME ANALYSIS:
 Extract every unique skill, tool, certification, and achievement across ALL past versions. These are part of the person's real profile — include all of them in the master profile.
 
 REWRITING APPROACH:
-1. Build master profile from: current resume + all past versions + short-learn inferences above
+1. Build master profile from: current resume + all past versions + short-learn inferences + interchangeable skills for this JD
 2. Map every JD requirement to the master profile:
-   - COVERED: directly in their background or clearly inferable
+   - COVERED: directly in their background, inferable, or covered by an interchangeable skill
    - BRIDGED: paraphrase and reframe their closest real experience to address it
-   - GAP: genuinely absent, cannot be inferred or bridged
-3. For each real job, write 5-6 bullets that use JD language to describe what they actually did — paraphrase freely, reframe completely, use every JD keyword that honestly applies
-4. Spread all JD requirements across the existing real jobs — never create a new job to fill a gap
+   - GAP: genuinely absent, cannot be inferred, bridged, or learned in 3-6 months
+3. For each real job, write 5-6 bullets using JD language to describe what they actually did — paraphrase freely, reframe completely, use every JD keyword that honestly applies
+4. Spread all JD requirements across existing real jobs — never create a new job to fill a gap
 5. Gaps that truly cannot be filled: list in GAPS and explain honestly in REASON
 
 WRITING RULES:
