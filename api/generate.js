@@ -141,7 +141,10 @@ WRITING RULES:
 - Every bullet completely rewritten — strong action verb + JD keyword + real context
 - Paraphrase aggressively: the same real work can be described many ways to match JD language
 - Summary: 3 sentences in first person ("I am...", "I have...", "I bring...") using JD vocabulary
-- Skills section: only include skills that (1) are directly relevant to this specific JD and (2) are NOT already mentioned in the summary or any bullet — the skills section should add new keywords, not repeat ones already in the body
+- Skills section — use industry judgment:
+  * ALWAYS include in skills (even if mentioned in bullets): specific software, tools, platforms, certifications, and technical methodologies — recruiters and ATS scan skills sections for these independently (e.g. QuickBooks, SAP, Excel, GAAP, Salesforce, Google Analytics, AutoCAD, Python)
+  * NEVER include in skills: soft skills, generic phrases, or action verbs already in bullets (e.g. "strong communicator", "detail-oriented", "team player", "prepared financial statements") — these belong only in the experience
+  * The skills section should read like a clean, scannable list of hard skills and tools — not a repetition of the bullet narrative
 - 5-6 bullets per job, maximally covering JD requirements across all real roles
 
 RECOMMENDATION LOGIC:
@@ -160,7 +163,7 @@ GAPS: [genuine missing requirement | ...]
 NAME: [full name from resume]
 CONTACT: [phone (dashes only, no commas e.g. +1-555-867-5309) | email | LinkedIn URL | City State — use | as separator, never commas between items]
 SUMMARY: [3 sentences in first person — connecting full background + inferred strengths to this role using JD vocabulary]
-SKILLS: [only skills relevant to this JD that do not already appear in the summary or bullets — no duplicates from the resume body, comma-separated]
+SKILLS: [hard skills, tools, software, platforms, certifications relevant to this JD — include even if briefly mentioned in bullets since ATS scans this independently; exclude soft skills and generic phrases that belong only in the experience, comma-separated]
 JOB: [title] | [company] | [location] | [dates]
 BULLET: [action verb + JD keyword + real or inferred context]
 BULLET: [action verb + JD keyword + real or inferred context]
