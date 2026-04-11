@@ -99,31 +99,45 @@ export default async function handler(req, res) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "API key not configured" });
 
-  const prompt = `You are a professional resume writer and career advisor. Rewrite this resume from scratch to maximally target the job description — using every transferable skill and experience the person genuinely has. Also provide an honest job fit assessment.
+  const prompt = `You are an expert resume strategist. Your job is to build the strongest possible resume by combining everything known about this person — their current resume, all past resume versions, and smart professional inference — then target it precisely to the job description.
 
-TRUTHFULNESS RULES (never break these):
-- NEVER invent skills, tools, software, or metrics not in the original resume
-- NEVER add SAP, ARIBA, Excel, or any tool not mentioned in the resume
-- NEVER fabricate metrics — only use numbers from the original resume
-- Original resume = source of facts only. All writing must be completely new.
+CORE RULES:
+- NEVER invent job titles, companies, degrees, years of experience, or specific metrics not stated anywhere
+- NEVER claim deep expertise in something requiring years of training unless stated
+- DO use every real skill, tool, and achievement from the current resume and ALL past versions
+- DO apply professional inference for implied skills (see below)
+
+PROFESSIONAL INFERENCE — YOU MAY ADD THESE:
+Based on a person's industry, role, and years of experience, infer and include skills they almost certainly have even if not listed. These are allowed:
+1. Standard productivity tools for their industry (Excel/Google Sheets for finance/ops/admin/HR, Outlook for any office role, basic reporting tools)
+2. Common short-learn tools for their role (CRMs like Salesforce basics for sales/marketing, ERPs like SAP basics for supply chain/finance/ops, project tools like Jira/Asana/Trello for coordinators, Adobe basics for marketing/creative)
+3. Certifications or knowledge areas that naturally accompany their experience (Google Analytics for marketing roles, WHMIS for lab/safety roles, basic PMP concepts for project coordinators, OSHA basics for operations/facilities)
+4. Any skill, tool, or certification mentioned in ANY past resume version — these are real, always include them
+5. Industry-standard practices implied by their job titles (budgeting for finance roles, cross-functional collaboration for any manager, data entry/reporting for any admin/coordinator)
+
+INFERENCE LIMITS — NEVER INFER:
+- Programming languages or advanced technical skills not mentioned anywhere in any resume
+- Specific enterprise implementations (full SAP ERP admin, Salesforce admin certification, etc.)
+- Management of large teams unless stated
+- Any specific metrics, numbers, or quantified results not appearing in any resume version
+
+PAST RESUME ANALYSIS:
+When past resume versions are provided, extract EVERY unique skill, tool, certification, achievement, and responsibility across all versions. Build a complete master profile. Use all of it — past versions reveal what the person forgot to include in their current resume.
 
 REWRITING APPROACH:
-1. Read the JD and identify every requirement (required vs preferred)
-2. Read the resume and identify everything the person genuinely has
-3. For each JD requirement:
-   - COVERED: person clearly has this from their resume
-   - BRIDGED: person has related/transferable experience that partially covers this
-   - GAP: person genuinely does not have this at all
-4. Rewrite the resume to maximally cover COVERED + BRIDGED requirements
-5. For BRIDGED items: frame the closest real experience in JD language as strongly as possible
-6. For GAP items: do not address in resume — list them honestly in GAPS
+1. Build master profile: current resume + all past resume versions + safe professional inferences based on their background
+2. Read the JD and classify every requirement against the master profile:
+   - COVERED: directly stated in any resume version or clearly inferable
+   - BRIDGED: transferable experience that partially addresses it
+   - GAP: genuinely absent — not in any version, not inferable
+3. Write bullets using JD language to describe real and inferred experience naturally
+4. Treat inferred skills as real — state them directly without hedging phrases like "familiar with" or "exposure to"
 
 WRITING RULES:
-- Every bullet completely rewritten — no original phrasing kept at all
-- Bullets: strong JD action verb + JD keyword phrase + real metric from resume
-- Summary: 3 sentences in first person ("I am...", "I have...", "I bring...") connecting real background to this specific role using JD vocabulary
-- Skills: only what exists in the resume, using JD terminology where equivalent
-- 5-6 bullets per job covering as many JD requirements as possible
+- Every bullet completely rewritten with a strong action verb + JD keyword + context
+- Summary: 3 sentences in first person ("I am...", "I have...", "I bring...") connecting full background to this role
+- Skills: all confirmed skills from any resume version + safe inferences relevant to this role
+- 5-6 bullets per job maximally covering JD requirements
 
 RECOMMENDATION LOGIC:
 - APPLY: 70%+ covered/bridged, no missing core requirements
@@ -134,33 +148,33 @@ RECOMMENDATION LOGIC:
 OUTPUT FORMAT — exact, no markdown, no extra text:
 MATCH_SCORE: [0-100 integer]
 RECOMMENDATION: [APPLY or APPLY_WITH_CAUTION or RECONSIDER]
-REASON: [2-3 sentences: what makes them a good fit, what the key gaps are, and whether those gaps are dealbreakers]
+REASON: [2-3 sentences: fit strengths, key gaps, whether gaps are dealbreakers]
 COVERED: [requirement | requirement | ...]
 BRIDGED: [requirement they partially cover | ...]
 GAPS: [genuine missing requirement | ...]
 NAME: [full name from resume]
 CONTACT: [phone (dashes only, no commas e.g. +1-555-867-5309) | email | LinkedIn URL | City State — use | as separator, never commas between items]
-SUMMARY: [3 sentences in first person ("I am...", "I have...", "I bring...") — rewritten using JD vocabulary, connecting real background to this role]
-SKILLS: [only skills from original resume, JD terminology preferred, comma-separated]
+SUMMARY: [3 sentences in first person — connecting full background + inferred strengths to this role using JD vocabulary]
+SKILLS: [all confirmed + inferred skills relevant to this role, JD terminology preferred, comma-separated]
 JOB: [title] | [company] | [location] | [dates]
-BULLET: [new bullet — JD verb + JD phrase + real metric]
-BULLET: [new bullet — JD verb + JD phrase + real metric]
-BULLET: [new bullet — JD verb + JD phrase + real metric]
-BULLET: [new bullet — JD verb + JD phrase + real metric]
-BULLET: [new bullet — JD verb + JD phrase + real metric]
-BULLET: [new bullet — JD verb + JD phrase + real metric]
+BULLET: [action verb + JD keyword + real or inferred context]
+BULLET: [action verb + JD keyword + real or inferred context]
+BULLET: [action verb + JD keyword + real or inferred context]
+BULLET: [action verb + JD keyword + real or inferred context]
+BULLET: [action verb + JD keyword + real or inferred context]
+BULLET: [action verb + JD keyword + real or inferred context]
 (repeat JOB + BULLET for every position in the resume)
 EDU: [degree] | [school] | [location] | [year]
 BULLET: [real achievement relevant to role]
 BULLET: [real achievement relevant to role]
 
 ---
-RESUME (facts only — this is the resume to rewrite):
+CURRENT RESUME:
 ${resumeText}
 ${pastResumes.length > 0 ? `
 ---
-PAST RESUME VERSIONS (same person — use ONLY to discover additional real skills, tools, and experience not in the current resume above; never fabricate):
-${pastResumes.map((r, i) => `[Past version ${i + 1}]\n${r}`).join("\n---\n")}
+PAST RESUME VERSIONS (same person — extract every skill, tool, achievement across all versions and include them):
+${pastResumes.map((r, i) => `[Version ${i + 1}]\n${r}`).join("\n---\n")}
 ` : ""}
 ---
 JOB DESCRIPTION:
@@ -169,22 +183,22 @@ ${jobDescription}
 ---
 BEGIN OUTPUT (first line: MATCH_SCORE:):`;
 
-  // Per-model config: 70B has 6000 TPD limit; 8B models have 6000 TPM so cap tokens tightly
+  const systemPrompt = "You are an expert resume strategist. Build the strongest resume possible using all resume versions and professional inference. Output plain text only — no markdown, no preamble. First line must be MATCH_SCORE:";
+
+  // Per-model config
   const MODELS = [
-    { id: "llama-3.3-70b-versatile",  maxTokens: 4096 },
-    { id: "llama-3.1-8b-instant",     maxTokens: 2800 },
-    { id: "llama3-8b-8192",           maxTokens: 2800 },
+    { id: "llama-3.3-70b-versatile", maxTokens: 4096 },
+    { id: "llama-3.1-8b-instant",    maxTokens: 2800 },
+    { id: "llama3-8b-8192",          maxTokens: 2800 },
   ];
-  const systemPrompt = "You are a professional resume writer and career advisor. Completely rewrite resumes from scratch in the exact plain-text format given. Never fabricate skills, tools, or metrics. Output plain text only — no markdown, no preamble. First line must be MATCH_SCORE:";
 
   let data = null;
   let lastError = null;
 
   for (const { id: model, maxTokens } of MODELS) {
-    // For smaller models, trim inputs so total request stays under 6000 TPM
     const isSmall = maxTokens <= 2800;
-    const resumeInput  = isSmall ? resumeText.slice(0, 3000)  : resumeText;
-    const jdInput      = isSmall ? jobDescription.slice(0, 2000) : jobDescription;
+    const resumeInput = isSmall ? resumeText.slice(0, 3000) : resumeText;
+    const jdInput     = isSmall ? jobDescription.slice(0, 2000) : jobDescription;
     const promptToSend = prompt
       .replace(resumeText, resumeInput)
       .replace(jobDescription, jdInput);
@@ -198,7 +212,7 @@ BEGIN OUTPUT (first line: MATCH_SCORE:):`;
           { role: "system", content: systemPrompt },
           { role: "user", content: promptToSend }
         ],
-        temperature: 0.2,
+        temperature: 0.3,
         max_tokens: maxTokens,
       }),
     });
