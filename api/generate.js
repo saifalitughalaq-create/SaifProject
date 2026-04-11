@@ -223,7 +223,10 @@ BEGIN OUTPUT:`;
   const text = (data.choices?.[0]?.message?.content || "").trim();
   if (!text) return res.status(500).json({ error: "No response from AI" });
 
+  console.log("=== RAW AI OUTPUT ===\n", text.slice(0, 2000));
+
   const parsed = parseOutput(text);
+  console.log("=== PARSED EXPERIENCE ===\n", JSON.stringify(parsed.experience));
   if (!parsed.name) {
     return res.status(500).json({ error: `Could not parse output. Raw start: ${text.slice(0, 300)}` });
   }
