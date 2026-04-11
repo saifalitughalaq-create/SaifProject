@@ -1053,75 +1053,18 @@ export default function App() {
                     </div>
                   ) : customTheme ? (
                     <div style={{ flex: 1 }} onClick={e => e.stopPropagation()}>
-                      <div style={{ fontWeight: "600", fontSize: "13px", marginBottom: "10px" }}>✓ Custom theme — adjust to match your template</div>
-
-                      {/* Colors */}
-                      <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "10px" }}>
-                        {[{ label: "Background", key: "bg" }, { label: "Text", key: "text" }, { label: "Accent", key: "accent" }].map(({ label, key }) => (
-                          <label key={key} style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
-                            <input type="color" value={customTheme.preview[key]}
-                              onChange={e => {
-                                const opts = customTheme._opts || {};
-                                const updated = buildThemeFromColors(
-                                  key === "bg" ? e.target.value : customTheme.preview.bg,
-                                  key === "text" ? e.target.value : customTheme.preview.text,
-                                  key === "accent" ? e.target.value : customTheme.preview.accent,
-                                  opts
-                                );
-                                setCustomTheme(updated); setSelectedTheme(updated);
-                              }}
-                              style={{ width: "22px", height: "22px", border: "none", borderRadius: "3px", cursor: "pointer", padding: "1px" }}
-                            />
-                            <span style={{ fontSize: "11px", color: "#555" }}>{label}</span>
-                          </label>
+                      <div style={{ fontWeight: "600", fontSize: "13px", marginBottom: "8px" }}>✓ Theme extracted from your document</div>
+                      <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "10px" }}>
+                        {[["Background", customTheme.preview.bg], ["Text", customTheme.preview.text], ["Accent", customTheme.preview.accent]].map(([label, color]) => (
+                          <div key={label} style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                            <div style={{ width: "18px", height: "18px", borderRadius: "3px", background: color, border: "1px solid #e0e0e0" }} />
+                            <span style={{ fontSize: "10px", color: "#888" }}>{label}</span>
+                          </div>
                         ))}
                       </div>
-
-                      {/* Style controls */}
-                      {[
-                        { label: "Font", key: "font", options: [["sans","Sans-serif"],["serif","Serif"],["mono","Monospace"]] },
-                        { label: "Divider", key: "divider", options: [["underline","Underline"],["leftbar","Left bar"],["thick","Thick line"],["none","None"]] },
-                        { label: "Skills", key: "skillShape", options: [["box","Box"],["pill","Pill"],["filled","Filled"],["plain","Plain text"]] },
-                      ].map(({ label, key, options }) => (
-                        <div key={key} style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "7px" }}>
-                          <span style={{ fontSize: "11px", color: "#666", width: "52px", flexShrink: 0 }}>{label}</span>
-                          <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
-                            {options.map(([val, lbl]) => {
-                              const current = (customTheme._opts || {})[key] || options[0][0];
-                              const active = current === val;
-                              return (
-                                <button key={val} onClick={() => {
-                                  const opts = { ...(customTheme._opts || {}), [key]: val };
-                                  const updated = buildThemeFromColors(customTheme.preview.bg, customTheme.preview.text, customTheme.preview.accent, opts);
-                                  setCustomTheme(updated); setSelectedTheme(updated);
-                                }} style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "3px", cursor: "pointer", border: `1px solid ${active ? "#1a1a1a" : "#d0d0d0"}`, background: active ? "#1a1a1a" : "#fff", color: active ? "#fff" : "#555" }}>
-                                  {lbl}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ))}
-
-                      {/* Toggles */}
-                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "10px" }}>
-                        {[["nameCaps","ALL CAPS name"],["nameItalic","Italic name"],["nameCentered","Centered name"]].map(([key, lbl]) => {
-                          const active = !!(customTheme._opts || {})[key];
-                          return (
-                            <button key={key} onClick={() => {
-                              const opts = { ...(customTheme._opts || {}), [key]: !active };
-                              const updated = buildThemeFromColors(customTheme.preview.bg, customTheme.preview.text, customTheme.preview.accent, opts);
-                              setCustomTheme(updated); setSelectedTheme(updated);
-                            }} style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "3px", cursor: "pointer", border: `1px solid ${active ? "#1a1a1a" : "#d0d0d0"}`, background: active ? "#1a1a1a" : "#fff", color: active ? "#fff" : "#555" }}>
-                              {lbl}
-                            </button>
-                          );
-                        })}
+                      <div style={{ fontSize: "11px", color: "#888", marginBottom: "8px" }}>
+                        Upload a different file to replace, or pick a preset below.
                       </div>
-
-                      <button onClick={() => setSelectedTheme(customTheme)} style={{ fontSize: "11px", padding: "4px 12px", borderRadius: "4px", cursor: "pointer", border: `1px solid ${selectedTheme.id === "custom" ? "#1a1a1a" : "#d0d0d0"}`, background: selectedTheme.id === "custom" ? "#1a1a1a" : "#fff", color: selectedTheme.id === "custom" ? "#fff" : "#555" }}>
-                        {selectedTheme.id === "custom" ? "✓ Selected" : "Use this theme"}
-                      </button>
                     </div>
                   ) : (
                     <div>
