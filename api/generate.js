@@ -106,12 +106,6 @@ export default async function handler(req, res) {
 3. PERMITTED SKILL ADDITIONS: The only exception to rule 1 — you may add highly relevant skills or basic certifications to the Skills section if they are requested in the JD and can realistically be acquired within 3–6 months (e.g. Advanced Excel, Sage, Xero, QuickBooks, SAP basics, Google Sheets). Add these to Skills only, not to experience bullets.
 4. UNFILLED GAPS: If critical JD requirements cannot be met by naturally rephrasing the resume, do not invent experience to bridge them. Omit them from the resume body and list them in the GAPS field.
 
-STRUCTURE REQUIREMENTS (non-negotiable):
-- Every job that exists in the resume MUST appear as a JOB: block — never skip or omit any job
-- Every education entry that exists in the resume MUST appear as an EDU: block
-- Write 4–5 bullet points per job by rephrasing and expanding the actual responsibilities listed — max 6
-- Use exact company names and job titles from the resume — never use placeholder text like [Company] or [Location]
-
 OUTPUT FORMAT:
 MATCH_SCORE: [0-100]
 RECOMMENDATION: [APPLY or APPLY_WITH_CAUTION or RECONSIDER]
@@ -142,7 +136,7 @@ ${jobDescription}
 
 BEGIN OUTPUT:`;
 
-  const systemPrompt = "You are a professional resume writer. Every job and education entry in the resume MUST appear in your output — never skip any. Rephrase existing content to match the JD, never fabricate. Add short-term learnable skills (3–6 months) to Skills section only. Output plain text, no markdown. First line must be MATCH_SCORE:";
+  const systemPrompt = "You are a professional resume writer. Output plain text only, no markdown. First line must be MATCH_SCORE:";
 
   // Per-model config
   const MODELS = [
@@ -152,7 +146,7 @@ BEGIN OUTPUT:`;
   ];
 
   // Compact fallback prompt for small models
-  const smallPrompt = `Rewrite the resume to target the job description. Rules: (1) Every job and education in the resume MUST appear — never skip any. (2) Only rephrase existing content — do not fabricate. (3) 4-5 bullets per job. (4) You may add short-term learnable skills to Skills section if JD requires them. (5) List unmet JD requirements in GAPS. Output plain text only.
+  const smallPrompt = `Rewrite the resume to target the job description. (1) Only rephrase existing content, no fabrication. (2) Natural phrasing only. (3) Add short-term learnable skills to Skills if JD requires them. (4) List unmet JD requirements in GAPS. Output plain text only.
 
 OUTPUT FORMAT:
 MATCH_SCORE: [0-100]
