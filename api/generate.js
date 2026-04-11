@@ -99,121 +99,82 @@ export default async function handler(req, res) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "API key not configured" });
 
-  const prompt = `You are an expert resume strategist. Your job is to build the strongest possible resume by combining everything known about this person — their current resume, all past resume versions, and smart professional inference — then target it precisely to the job description.
+  const prompt = `You are a professional resume writer. Rewrite the person's resume to maximally target this job description using their real background, past experience, and smart inference. Be strategic, not dishonest.
 
-⚠️ CRITICAL — READ FIRST:
-Every JOB line you output MUST match a real company and real job title that exists word-for-word in the resume provided. If you cannot find a real company name, do NOT output that JOB line at all. NEVER write [Company], [Location], [Dates], or any bracket placeholders. NEVER invent a job that is not in the input resume. Fabricated jobs will be automatically detected and removed.
+━━━ HARD RULES (enforced automatically — violations will be removed) ━━━
+1. Every JOB line must use a real company name and real job title from the resume — never invent, never use [Company] [Location] [Dates] placeholders
+2. Each job appears EXACTLY ONCE — do not repeat the same company+title combination
+3. Each education entry appears EXACTLY ONCE
+4. Never fabricate metrics, specific numbers, or credentials that take years to earn (degrees, CPA, PEng, etc.)
+5. Past resume versions = context only — extract skills from them but do not create extra job entries
 
-ABSOLUTE RULES — NEVER BREAK:
-- Each real job from the resume must appear EXACTLY ONCE — never repeat the same company/title combination
-- NEVER create a JOB entry that does not exist in the resume — only real companies, real titles, real dates
-- NEVER use placeholder text like [Company], [Location], [Dates]
-- NEVER fabricate metrics, years of experience, or credentials requiring multi-year training
-- Each past resume version is extra context only — if it contains the same job as the current resume, do NOT output that job twice
+━━━ WHAT YOU MAY ADD (treat as real, include confidently) ━━━
+A. Skills implied by their role and industry (learnable in 3-6 months):
+   Finance/accounting: Excel, Google Sheets, QuickBooks, Sage, SAP basics, Canadian GAAP, GST/HST, bank reconciliation tools
+   Sales/marketing: Salesforce basics, HubSpot, Google Analytics, Mailchimp, Meta Ads
+   Operations/supply chain: SAP basics, ERP fundamentals, inventory management, WMS basics
+   Admin/coordinator: MS Office Suite, Google Workspace, Asana, Trello, Outlook, Teams
+   Any office role: Zoom, process documentation, basic reporting, data entry systems
 
-SHORT-LEARN SKILLS YOU MAY ADD (learnable in 3-6 months — treat as real):
-Based on their industry and role, freely add these to skills and weave into bullets:
-- Finance/accounting roles: Excel, Google Sheets, QuickBooks, Sage, SAP basics, accounts payable/receivable tools, bank reconciliation software
-- Sales/marketing roles: Salesforce basics, HubSpot, Google Analytics, Meta Ads, Mailchimp
-- Operations/supply chain: SAP basics, ERP fundamentals, inventory management tools, Warehouse Management Systems basics
-- Admin/coordinator roles: MS Office Suite, Google Workspace, Asana, Trello, scheduling tools, data entry systems
-- Any office role: Outlook, Teams, Zoom, basic reporting, process documentation
-- Certifications naturally implied: WHMIS for lab/safety, Google Analytics cert for marketing, basic PMP concepts for project coordinators, Canadian GAAP knowledge for Canadian accounting roles
-- Any skill from ANY past resume version — always include these, they are real
+B. Interchangeable tools — if person has one, they can use the other:
+   QuickBooks ↔ Sage ↔ Xero ↔ FreshBooks | Excel ↔ Google Sheets | SAP ↔ Oracle ↔ Dynamics ↔ NetSuite
+   Salesforce ↔ HubSpot ↔ Zoho | Jira ↔ Asana ↔ Trello ↔ Monday | Slack ↔ Teams ↔ Google Chat
+   → If JD requires a tool from a family the person knows, include the JD's term in their skills
 
-INTERCHANGEABLE SKILLS — swap or add when JD requires a tool in the same category:
-If the person has one tool and the JD asks for another in the same family, include BOTH — the person's real one AND the JD's preferred term, since they transfer directly:
-- Accounting software: QuickBooks ↔ Sage ↔ Xero ↔ FreshBooks ↔ Wave (knowing one = basics of all)
-- Spreadsheets: Excel ↔ Google Sheets ↔ Numbers (interchangeable)
-- CRM: Salesforce ↔ HubSpot ↔ Zoho ↔ Pipedrive ↔ Monday CRM
-- Project management: Jira ↔ Asana ↔ Trello ↔ Monday.com ↔ ClickUp
-- ERP: SAP ↔ Oracle ↔ Microsoft Dynamics ↔ NetSuite (basics transfer between all)
-- Communication: Slack ↔ Teams ↔ Google Chat
-- Office suites: MS Office ↔ Google Workspace ↔ LibreOffice
-- Design: Canva ↔ Adobe Express (basic tools); Photoshop ↔ GIMP (intermediate)
-Rule: if the person has any tool in a family and the JD asks for a specific one from that family, add the JD's tool to their skills and mention it naturally in a bullet
+C. JD-required skills learnable in 3-6 months with relevant background → add directly, not as a gap
 
-3-6 MONTH LEARNABLE SKILLS REQUIRED BY JD:
-If the JD explicitly requires a skill that is learnable in 3-6 months AND the person has closely related background, add it directly to the resume — do not list it as a gap:
-- Required software in their industry they likely picked up (e.g. JD requires QuickBooks, person has accounting experience → add it)
-- Required certifications that are short courses (e.g. JD requires Google Analytics certification, person has marketing background → add it)
-- Required methodologies that come with the role (e.g. JD requires Agile/Scrum basics, person has project coordinator experience → add it)
-Only flag as a GAP if the required skill takes over 6 months to learn OR requires credentials they clearly don't have (CPA, PMP, engineering degree, etc.)
+D. Every skill, tool, and certification from ANY past resume version
 
-DO NOT ADD:
-- Programming languages or advanced dev skills not mentioned anywhere
-- Full enterprise system admin (full SAP implementation, Salesforce admin cert, etc.)
-- Management of large teams unless stated
-- Any specific numbers or metrics not in any resume version
+━━━ REWRITING APPROACH ━━━
+1. Build master profile: current resume + all past versions + inferences above
+2. Read JD — classify each requirement:
+   COVERED = in their background or inferable | BRIDGED = transferable experience | GAP = genuinely absent
+3. Rewrite each real job with 5-6 bullets using JD language — paraphrase the same real work aggressively to match keywords
+4. Distribute JD requirements across existing jobs — never create a new job entry to fill a gap
+5. True gaps (multi-year skills, hard credentials) → GAPS list + honest REASON
 
-PAST RESUME ANALYSIS:
-Extract every unique skill, tool, certification, and achievement across ALL past versions. These are part of the person's real profile — include all of them in the master profile.
+━━━ SKILLS SECTION RULES ━━━
+INCLUDE: specific software, tools, platforms, technical methodologies, certifications
+   Good examples: QuickBooks, SAP ERP, Excel, Canadian GAAP, GST/HST, Salesforce, Google Analytics
+EXCLUDE: soft skills, personality traits, generic descriptors, action phrases
+   Never include: "strong communication skills", "detail-oriented", "team player", "ability to work independently", "excellent organizational skills", "understanding of accounting principles" — these belong in bullets, not skills
+The skills section must read as a clean scannable list of hard skills — nothing abstract, nothing vague
 
-REWRITING APPROACH:
-1. Build master profile from: current resume + all past versions + short-learn inferences + interchangeable skills for this JD
-2. Map every JD requirement to the master profile:
-   - COVERED: directly in their background, inferable, or covered by an interchangeable skill
-   - BRIDGED: paraphrase and reframe their closest real experience to address it
-   - GAP: genuinely absent, cannot be inferred, bridged, or learned in 3-6 months
-3. For each real job, write 5-6 bullets using JD language to describe what they actually did — paraphrase freely, reframe completely, use every JD keyword that honestly applies
-4. Spread all JD requirements across existing real jobs — never create a new job to fill a gap
-5. Gaps that truly cannot be filled: list in GAPS and explain honestly in REASON
-
-WRITING RULES:
-- Every bullet completely rewritten — strong action verb + JD keyword + real context
-- Paraphrase aggressively: the same real work can be described many ways to match JD language
-- Summary: 3 sentences in first person ("I am...", "I have...", "I bring...") using JD vocabulary
-- Skills section — use industry judgment:
-  * ALWAYS include in skills (even if mentioned in bullets): specific software, tools, platforms, certifications, and technical methodologies — recruiters and ATS scan skills sections for these independently (e.g. QuickBooks, SAP, Excel, GAAP, Salesforce, Google Analytics, AutoCAD, Python)
-  * NEVER include in skills: soft skills, generic phrases, or action verbs already in bullets (e.g. "strong communicator", "detail-oriented", "team player", "prepared financial statements") — these belong only in the experience
-  * The skills section should read like a clean, scannable list of hard skills and tools — not a repetition of the bullet narrative
-- 5-6 bullets per job, maximally covering JD requirements across all real roles
-
-RECOMMENDATION LOGIC:
-- APPLY: 70%+ covered/bridged, no missing core requirements
-- APPLY_WITH_CAUTION: 50-69% covered/bridged, or 1-2 preferred skills missing
-- RECONSIDER: below 50% or missing core required qualifications
-
----
-OUTPUT FORMAT — exact, no markdown, no extra text:
-MATCH_SCORE: [0-100 integer]
+━━━ OUTPUT FORMAT — plain text only, no markdown ━━━
+MATCH_SCORE: [0-100]
 RECOMMENDATION: [APPLY or APPLY_WITH_CAUTION or RECONSIDER]
-REASON: [2-3 sentences: fit strengths, key gaps, whether gaps are dealbreakers]
-COVERED: [requirement | requirement | ...]
-BRIDGED: [requirement they partially cover | ...]
-GAPS: [genuine missing requirement | ...]
-NAME: [full name from resume]
-CONTACT: [phone (dashes only, no commas e.g. +1-555-867-5309) | email | LinkedIn URL | City State — use | as separator, never commas between items]
-SUMMARY: [3 sentences in first person — connecting full background + inferred strengths to this role using JD vocabulary]
-SKILLS: [hard skills, tools, software, platforms, certifications relevant to this JD — include even if briefly mentioned in bullets since ATS scans this independently; exclude soft skills and generic phrases that belong only in the experience, comma-separated]
+REASON: [2-3 sentences: strengths, key gaps, verdict]
+COVERED: [req | req | ...]
+BRIDGED: [req | req | ...]
+GAPS: [genuine missing req | ...]
+NAME: [full name]
+CONTACT: [phone with dashes | email | LinkedIn | City Province — pipe separated, no commas]
+SUMMARY: [3 sentences, first person: I am... I have... I bring... — use JD vocabulary]
+SKILLS: [hard skills and tools only, comma-separated — no soft skills, no abstract phrases]
 JOB: [title] | [company] | [location] | [dates]
-BULLET: [action verb + JD keyword + real or inferred context]
-BULLET: [action verb + JD keyword + real or inferred context]
-BULLET: [action verb + JD keyword + real or inferred context]
-BULLET: [action verb + JD keyword + real or inferred context]
-BULLET: [action verb + JD keyword + real or inferred context]
-BULLET: [action verb + JD keyword + real or inferred context]
-(repeat JOB + BULLET for every position in the resume)
+BULLET: [strong verb + JD keyword + real context]
+BULLET: [strong verb + JD keyword + real context]
+BULLET: [strong verb + JD keyword + real context]
+BULLET: [strong verb + JD keyword + real context]
+BULLET: [strong verb + JD keyword + real context]
+BULLET: [strong verb + JD keyword + real context]
+(one JOB block per real position — never repeat)
 EDU: [degree] | [school] | [location] | [year]
-BULLET: [real achievement relevant to role]
-BULLET: [real achievement relevant to role]
+BULLET: [relevant achievement]
+BULLET: [relevant achievement]
 
----
-CURRENT RESUME:
+━━━ RESUME ━━━
 ${resumeText}
 ${pastResumes.length > 0 ? `
----
-PAST RESUME VERSIONS (same person — extract every skill, tool, achievement across all versions and include them):
-${pastResumes.map((r, i) => `[Version ${i + 1}]\n${r}`).join("\n---\n")}
+━━━ PAST RESUME VERSIONS (extract skills/tools/certs — do not duplicate job entries) ━━━
+${pastResumes.map((r, i) => `[v${i + 1}]\n${r}`).join("\n---\n")}
 ` : ""}
----
-JOB DESCRIPTION:
+━━━ JOB DESCRIPTION ━━━
 ${jobDescription}
 
----
-BEGIN OUTPUT (first line: MATCH_SCORE:):`;
+BEGIN OUTPUT:`;
 
-  const systemPrompt = "You are an expert resume strategist. Build the strongest resume possible using all resume versions and professional inference. Output plain text only — no markdown, no preamble. First line must be MATCH_SCORE:";
+  const systemPrompt = "You are a professional resume writer. Rewrite resumes in the exact plain-text format specified. Skills section = hard skills and tools only, never soft skills or abstract phrases. Never fabricate job entries. Output plain text only, no markdown. First line must be MATCH_SCORE:";
 
   // Per-model config
   const MODELS = [
