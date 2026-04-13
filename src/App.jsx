@@ -1515,8 +1515,8 @@ export default function App() {
             </div>
 
             <div style={{ display: "flex", justifyContent: "center", marginTop: "28px" }}>
-              <button className="btn-ghost" onClick={() => { setShowLanding(true); setStep(0); setGenerated(null); setResumeText(""); setJobDesc(""); }}>
-                Start Over
+              <button className="btn-ghost" onClick={() => { setGenerated(null); setJobDesc(""); setStep(1); }}>
+                Try a New Job
               </button>
             </div>
           </div>

@@ -145,9 +145,13 @@ APPLY_WITH_CAUTION — most core requirements covered; 1-2 genuine hard gaps exi
 RECONSIDER       — multiple must-have requirements are completely absent
 
 ━━━ SKILLS SECTION RULES ━━━
-The skills section is driven by the JD — only include what the JD actually cares about.
+The skills section must reflect what the JD requires. If the JD lists a required skill, it must appear in the skills section if any of these apply:
+  • The person has it (explicit in any resume version)
+  • It is interchangeable with something they have (QuickBooks ↔ Sage, Excel ↔ Google Sheets, etc.)
+  • It falls in the permitted easily-acquirable additions list above
+  • It is a general category skill the person has demonstrated (e.g. "customer service" for someone with a CS role)
 
-ALWAYS INCLUDE: technical skills, software, tools, platforms, certifications, methodologies that appear in or are relevant to the JD
+ALWAYS INCLUDE: every technical skill, tool, software, platform, certification, or methodology the JD requires or prefers — map it from their background using the rules above
 
 INCLUDE ONLY IF JD EXPLICITLY REQUIRES IT: soft skills, using the JD's own phrasing (2-3 words max)
    Example: JD says "cross-functional collaboration" → include "Cross-functional Collaboration"
@@ -204,7 +208,7 @@ BEGIN OUTPUT:`;
 RULES:
 - Only use real companies/titles from the resume — never invent jobs or use [brackets]
 - Each job and education entry appears exactly once
-- Skills: hard skills and tools only (software, certifications, technical methods). No soft skills, no generic phrases.
+- Skills: include every hard skill the JD requires — map from their background using interchangeable tools and permitted additions. No soft skills, no generic phrases.
 - Add implied tools for their industry (Excel/Sheets for finance, QuickBooks/Sage interchangeable, SAP basics for ops, etc.)
 - Paraphrase experience bullets using JD keywords — 5-6 bullets per job
 - True gaps only: list in GAPS and REASON
