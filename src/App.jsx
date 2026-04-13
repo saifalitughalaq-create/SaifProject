@@ -334,8 +334,8 @@ const THEMES = [
 ];
 
 const STEPS = ["Resume", "Job Description", "Theme", "Generate"];
-const GUEST_LIMIT = 10;   // daily generations without sign-in
-const AUTH_LIMIT  = 10;   // daily generations after sign-in
+const GUEST_LIMIT = 5;    // daily generations without sign-in
+const AUTH_LIMIT  = 5;    // daily generations after sign-in (5 more on top of guest)
 const LS_KEY = "rt_gens_v2";      // bump to force-reset all guest browser counts
 const RESET_EPOCH = "v2";         // bump to force-reset all Firestore user counts
 
