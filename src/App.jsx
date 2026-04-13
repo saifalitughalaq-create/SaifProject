@@ -980,23 +980,32 @@ export default function App() {
           }
         }
         /* ── Responsive ── */
+        @media (max-width: 768px) {
+          .feature-grid { grid-template-columns: 1fr 1fr !important; }
+          .main-container { padding: 24px 16px 80px !important; }
+        }
         @media (max-width: 640px) {
           .header-tagline { display: none; }
-          .header-inner { height: auto !important; padding: 10px 0 !important; flex-wrap: wrap; gap: 8px; }
-          .header-right { flex-wrap: wrap; gap: 6px !important; }
+          .header-inner { height: auto !important; padding: 10px 0 !important; flex-wrap: wrap; gap: 6px; }
+          .header-right { flex-wrap: wrap; gap: 5px !important; }
           .feature-grid { grid-template-columns: 1fr !important; }
-          .main-container { padding: 20px 14px 60px !important; }
-          .step4-top { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
-          .step4-buttons { width: 100%; display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; }
+          .main-container { padding: 16px 14px 80px !important; }
+          .step4-top { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
+          .step4-buttons { width: 100% !important; display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; }
           .resume-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-          .resume-scroll > * { min-width: 520px; }
-          .gen-counter { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-          .btn-primary, .btn-ghost { padding: 10px 16px !important; font-size: 12px !important; }
-          h1 { font-size: 20px !important; }
+          .resume-scroll > * { min-width: 480px; }
+          .gen-counter { font-size: 10px !important; padding: 3px 6px !important; }
+          .btn-primary, .btn-ghost { padding: 10px 14px !important; font-size: 12px !important; }
+          .step-nav { flex-direction: column-reverse !important; gap: 8px !important; }
+          .step-nav .btn-primary, .step-nav .btn-ghost { width: 100% !important; justify-content: center; }
+          h1 { font-size: 22px !important; }
+          textarea { font-size: 14px !important; }
+          .memory-card { flex-direction: column !important; }
         }
         @media (max-width: 400px) {
           .header-right { gap: 4px !important; }
           .step4-buttons { grid-template-columns: 1fr; }
+          h1 { font-size: 19px !important; }
         }
       `}</style>
 
@@ -1185,7 +1194,7 @@ export default function App() {
             {/* Memory Status */}
             {!authLoading && (
               user ? (
-                <div style={{ background: savedResumeCount > 0 ? "#faf8ff" : "#fafafa", border: `1px solid ${savedResumeCount > 0 ? "#ede9ff" : "#ebebeb"}`, borderRadius: "12px", padding: "16px 18px", marginBottom: "24px", display: "flex", alignItems: "flex-start", gap: "14px" }}>
+                <div className="memory-card" style={{ background: savedResumeCount > 0 ? "#faf8ff" : "#fafafa", border: `1px solid ${savedResumeCount > 0 ? "#ede9ff" : "#ebebeb"}`, borderRadius: "12px", padding: "16px 18px", marginBottom: "24px", display: "flex", alignItems: "flex-start", gap: "14px" }}>
                   <div style={{ width: "36px", height: "36px", background: savedResumeCount > 0 ? "#ede9ff" : "#f0f0f0", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={savedResumeCount > 0 ? "#7c3aed" : "#aaa"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
                   </div>
@@ -1266,7 +1275,7 @@ export default function App() {
               {jobDesc.length}/6000{jobDesc.length >= 6000 ? " — limit reached" : ""}
             </div>
 
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "14px" }}>
+            <div className="step-nav" style={{ display: "flex", justifyContent: "space-between", marginTop: "14px" }}>
               <button className="btn-ghost" onClick={() => setStep(0)}>← Back</button>
               <button className="btn-primary" onClick={() => setStep(2)} disabled={!canNext()}>Continue →</button>
             </div>
@@ -1303,7 +1312,7 @@ export default function App() {
               ))}
             </div>
 
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <div className="step-nav" style={{ display: "flex", justifyContent: "space-between" }}>
               <button className="btn-ghost" onClick={() => setStep(1)}>← Back</button>
               <button className="btn-primary" onClick={() => setStep(3)}>Continue →</button>
             </div>

@@ -243,6 +243,68 @@ export default function LandingPage({ onStart, user, onSignIn, onSignOut }) {
         </div>
       </div>
 
+      {/* On the go section */}
+      <div className="lp-section-pad" style={{ padding: "80px 24px", background: "#fff", borderTop: "1px solid #f0f0f0" }}>
+        <div style={{ maxWidth: "1000px", margin: "0 auto", textAlign: "center" }}>
+          <div style={{ fontSize: "11px", fontWeight: "700", color: "#7c3aed", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "14px" }}>Mobile ready</div>
+          <h2 style={{ fontSize: "36px", fontWeight: "900", letterSpacing: "-1px", color: "#0f0f0f", marginBottom: "14px", lineHeight: "1.1" }}>
+            Make resume on the go.<br />
+            <span style={{ color: "#7c3aed" }}>Whenever. Wherever.</span>
+          </h2>
+          <p style={{ fontSize: "16px", color: "#666", maxWidth: "500px", margin: "0 auto 40px", lineHeight: "1.65" }}>
+            Spot a job listing on your phone? Tailor your resume right there and then. No laptop needed.
+          </p>
+
+          {/* Phone mockup */}
+          <div style={{ display: "inline-block", background: "#0f0f0f", borderRadius: "36px", padding: "10px", boxShadow: "0 24px 64px rgba(0,0,0,0.18)", marginBottom: "48px", position: "relative" }}>
+            <div style={{ background: "#fff", borderRadius: "28px", width: "220px", overflow: "hidden" }}>
+              {/* Status bar */}
+              <div style={{ background: "#7c3aed", padding: "10px 16px 8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: "10px", color: "#fff", fontWeight: "700" }}>ResumeJD</span>
+                <span style={{ background: "#f0eaff", color: "#7c3aed", fontSize: "8px", fontWeight: "700", padding: "1px 6px", borderRadius: "10px" }}>FREE</span>
+              </div>
+              {/* App body */}
+              <div style={{ padding: "14px 12px", background: "#fff" }}>
+                <div style={{ fontSize: "9px", fontWeight: "800", color: "#0f0f0f", marginBottom: "6px" }}>Tailor your resume</div>
+                <div style={{ background: "#faf8ff", border: "1px solid #ede9ff", borderRadius: "6px", padding: "8px 10px", marginBottom: "8px" }}>
+                  <div style={{ fontSize: "8px", color: "#aaa", marginBottom: "4px" }}>Your resume</div>
+                  <div style={{ height: "3px", background: "#ede9ff", borderRadius: "2px", marginBottom: "2px", width: "90%" }} />
+                  <div style={{ height: "3px", background: "#ede9ff", borderRadius: "2px", marginBottom: "2px", width: "70%" }} />
+                  <div style={{ height: "3px", background: "#ede9ff", borderRadius: "2px", width: "80%" }} />
+                </div>
+                <div style={{ background: "#faf8ff", border: "1px solid #ede9ff", borderRadius: "6px", padding: "8px 10px", marginBottom: "10px" }}>
+                  <div style={{ fontSize: "8px", color: "#aaa", marginBottom: "4px" }}>Job description</div>
+                  <div style={{ height: "3px", background: "#ede9ff", borderRadius: "2px", marginBottom: "2px", width: "100%" }} />
+                  <div style={{ height: "3px", background: "#ede9ff", borderRadius: "2px", width: "60%" }} />
+                </div>
+                <div style={{ background: "#7c3aed", borderRadius: "6px", padding: "7px", textAlign: "center" }}>
+                  <span style={{ fontSize: "9px", color: "#fff", fontWeight: "700" }}>Generate My Resume →</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Install instructions */}
+          <div style={{ display: "flex", justifyContent: "center", gap: "20px", flexWrap: "wrap" }}>
+            {[
+              { os: "iPhone / Safari", steps: ["Tap the Share button", "Select Add to Home Screen", "Tap Add"] },
+              { os: "Android / Chrome", steps: ["Tap the menu ( ⋮ )", "Select Add to Home Screen", "Tap Add"] },
+            ].map(({ os, steps }) => (
+              <div key={os} style={{ background: "#faf8ff", border: "1px solid #ede9ff", borderRadius: "14px", padding: "20px 24px", minWidth: "200px", textAlign: "left" }}>
+                <div style={{ fontSize: "12px", fontWeight: "700", color: "#7c3aed", marginBottom: "12px" }}>{os}</div>
+                {steps.map((s, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: "8px", marginBottom: "8px" }}>
+                    <div style={{ width: "18px", height: "18px", background: "#7c3aed", color: "#fff", borderRadius: "50%", fontSize: "9px", fontWeight: "800", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</div>
+                    <span style={{ fontSize: "12px", color: "#555", lineHeight: "1.5" }}>{s}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+          <p style={{ marginTop: "20px", fontSize: "12px", color: "#bbb" }}>No app store. No download. Instant access from your home screen.</p>
+        </div>
+      </div>
+
       {/* CTA */}
       <div className="lp-section-pad" style={{ padding: "80px 24px", background: "#fafafa" }}>
         <div style={{ maxWidth: "680px", margin: "0 auto" }}>
