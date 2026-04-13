@@ -483,7 +483,18 @@ const ResumePreview = ({ data, theme }) => {
 };
 
 export default function App() {
-  const [showLanding, setShowLanding] = useState(true);
+  const [showLanding, setShowLanding] = useState(() => {
+    const isPWA = window.navigator.standalone === true ||
+      window.matchMedia('(display-mode: standalone)').matches;
+    return !isPWA;
+  });
+  const [darkMode, setDarkMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem('dm');
+      if (saved !== null) return saved === '1';
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    } catch { return false; }
+  });
   const [step, setStep] = useState(0);
   const [resumeText, setResumeText] = useState("");
   const [jobDesc, setJobDesc] = useState("");
@@ -522,6 +533,11 @@ export default function App() {
     const id = setInterval(() => setResetCountdown(getResetCountdown()), 60000);
     return () => clearInterval(id);
   }, []);
+
+  // Persist dark mode preference
+  useEffect(() => {
+    localStorage.setItem('dm', darkMode ? '1' : '0');
+  }, [darkMode]);
 
   // Cycle loading messages while generating
   useEffect(() => {
@@ -898,6 +914,10 @@ export default function App() {
     return true;
   };
 
+  const DARK = { bg: "#0d0d14", surface: "#15121f", surface2: "#1e1a2e", border: "#2a2240", text: "#ede9f4", muted: "#8880a0" };
+  const LIGHT = { bg: "#ffffff", surface: "#fafafa", surface2: "#faf8ff", border: "#ebebeb", text: "#0f0f0f", muted: "#666" };
+  const ui = darkMode ? DARK : LIGHT;
+
   if (showLanding) {
     return (
       <LandingPage
@@ -905,18 +925,22 @@ export default function App() {
         user={user}
         onSignIn={handleGoogleSignIn}
         onSignOut={handleSignOut}
+        darkMode={darkMode}
+        onToggleDark={() => setDarkMode(d => !d)}
       />
     );
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#fff", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", color: "#0f0f0f" }}>
+    <div className={darkMode ? "app-root dark" : "app-root"} style={{ minHeight: "100vh", background: ui.bg, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", color: ui.text }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: #f4f4f4; }
         ::-webkit-scrollbar-thumb { background: #d0d0d0; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-track { background: #1e1a2e; }
+        .dark ::-webkit-scrollbar-thumb { background: #2a2240; }
         @keyframes slideUp {
           from { opacity: 0; transform: translateX(-50%) translateY(16px); }
           to   { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -1007,21 +1031,36 @@ export default function App() {
           .step4-buttons { grid-template-columns: 1fr; }
           h1 { font-size: 19px !important; }
         }
+        /* ── Dark mode ── */
+        .dark textarea, .dark input[type="text"], .dark input[type="password"] {
+          background: #1e1a2e !important; border-color: #2a2240 !important; color: #ede9f4 !important;
+        }
+        .dark textarea::placeholder, .dark input::placeholder { color: #443e5a !important; }
+        .dark textarea:focus, .dark input:focus {
+          border-color: #7c3aed !important; box-shadow: 0 0 0 3px rgba(124,58,237,0.18) !important;
+        }
+        .dark .btn-ghost { color: #c4b5fd !important; border-color: #2a2240 !important; }
+        .dark .btn-ghost:hover { border-color: #7c3aed !important; color: #7c3aed !important; }
+        .dark .theme-card { background: #15121f !important; border-color: #2a2240 !important; color: #ede9f4 !important; }
+        .dark .theme-card:hover { box-shadow: 0 4px 16px rgba(124,58,237,0.15) !important; }
+        .dark .theme-card.selected { border-color: #7c3aed !important; box-shadow: 0 0 0 3px rgba(124,58,237,0.2) !important; }
+        .dark-toggle { background: transparent; border: none; cursor: pointer; padding: 5px; border-radius: 6px; display: flex; align-items: center; transition: opacity 0.15s; }
+        .dark-toggle:hover { opacity: 0.7; }
       `}</style>
 
       {/* Paywall Modal */}
       {showPaywall && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}
           onClick={() => setShowPaywall(false)}>
-          <div style={{ background: "#fff", borderRadius: "14px", padding: "36px", maxWidth: "420px", width: "100%", textAlign: "center" }}
+          <div style={{ background: ui.surface, borderRadius: "14px", padding: "36px", maxWidth: "420px", width: "100%", textAlign: "center", color: ui.text }}
             onClick={e => e.stopPropagation()}>
-            <div style={{ width: "48px", height: "48px", background: "#faf8ff", border: "1px solid #ede9ff", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+            <div style={{ width: "48px", height: "48px", background: ui.surface2, border: `1px solid ${ui.border}`, borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
               </div>
             <h2 style={{ fontSize: "20px", fontWeight: "700", marginBottom: "8px" }}>
               {user ? `Daily limit reached` : `You've used today's ${GUEST_LIMIT} free generations`}
             </h2>
-            <p style={{ color: "#666", fontSize: "13px", lineHeight: "1.6", marginBottom: "8px" }}>
+            <p style={{ color: ui.muted, fontSize: "13px", lineHeight: "1.6", marginBottom: "8px" }}>
               {user
                 ? `You've used all ${AUTH_LIMIT} generations for today. Come back tomorrow for ${AUTH_LIMIT} more free, or upgrade to Pro for unlimited.`
                 : `Sign in with Google to get ${AUTH_LIMIT} more free generations today. Limits reset daily.`}
@@ -1052,9 +1091,9 @@ export default function App() {
       {showMemoryPromo && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}
           onClick={() => { setShowMemoryPromo(false); localStorage.setItem("rt_memory_seen", "1"); }}>
-          <div style={{ background: "#fff", borderRadius: "16px", padding: "40px 36px", maxWidth: "400px", width: "100%", textAlign: "center" }}
+          <div style={{ background: ui.surface, borderRadius: "16px", padding: "40px 36px", maxWidth: "400px", width: "100%", textAlign: "center", color: ui.text }}
             onClick={e => e.stopPropagation()}>
-            <div style={{ width: "52px", height: "52px", background: "#faf8ff", border: "1px solid #ede9ff", borderRadius: "16px", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
+            <div style={{ width: "52px", height: "52px", background: ui.surface2, border: `1px solid ${ui.border}`, borderRadius: "16px", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
               </div>
             <h2 style={{ fontSize: "20px", fontWeight: "700", marginBottom: "10px", letterSpacing: "-0.3px" }}>
@@ -1109,13 +1148,13 @@ export default function App() {
       )}
 
       {/* Header */}
-      <div style={{ borderBottom: "1px solid #f0f0f0", background: "#fff", padding: "0 16px", position: "sticky", top: 0, zIndex: 100 }}>
+      <div style={{ borderBottom: `1px solid ${ui.border}`, background: ui.bg, padding: "0 16px", position: "sticky", top: 0, zIndex: 100 }}>
         <div className="header-inner" style={{ maxWidth: "760px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: "58px" }}>
           <div
             style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}
             onClick={() => { setShowLanding(true); setStep(0); setGenerated(null); setResumeText(""); setJobDesc(""); }}
           >
-            <span style={{ fontWeight: "900", fontSize: "17px", letterSpacing: "-0.5px", color: "#0f0f0f" }}>ResumeJD</span>
+            <span style={{ fontWeight: "900", fontSize: "17px", letterSpacing: "-0.5px", color: ui.text }}>ResumeJD</span>
             <span style={{ background: "#f0eaff", color: "#7c3aed", fontSize: "10px", fontWeight: "700", padding: "2px 7px", borderRadius: "20px" }}>FREE</span>
             <span className="header-tagline" style={{ fontSize: "11px", color: "#999", letterSpacing: "0.1px" }}>AI resume tailored to your job description</span>
           </div>
@@ -1148,11 +1187,19 @@ export default function App() {
                 </span>
               );
             })()}
+            {/* Dark mode toggle */}
+            <button className="dark-toggle" onClick={() => setDarkMode(d => !d)} title={darkMode ? "Light mode" : "Dark mode"} style={{ color: ui.muted }}>
+              {darkMode ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+              )}
+            </button>
             {/* Auth */}
             {isFirebaseReady && !authLoading && (
               user ? (
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  {user.photoURL && <img src={user.photoURL} alt="" style={{ width: "28px", height: "28px", borderRadius: "50%", border: "1px solid #e0e0e0" }} />}
+                  {user.photoURL && <img src={user.photoURL} alt="" style={{ width: "28px", height: "28px", borderRadius: "50%", border: `1px solid ${ui.border}` }} />}
                   <button onClick={handleSignOut} className="btn-ghost" style={{ padding: "5px 12px", fontSize: "12px" }}>Sign out</button>
                 </div>
               ) : (
@@ -1167,14 +1214,14 @@ export default function App() {
       </div>
 
       {/* Main */}
-      <div className="main-container" style={{ maxWidth: step === 4 ? "860px" : "640px", margin: "0 auto", padding: "40px 24px 80px", background: "#fff" }}>
+      <div className="main-container" style={{ maxWidth: step === 4 ? "860px" : "640px", margin: "0 auto", padding: "40px 24px 80px" }}>
 
 
         {/* STEP 0: Upload Resume */}
         {step === 0 && (
           <div className="fade-in">
-            <h1 style={{ fontSize: "28px", fontWeight: "900", marginBottom: "6px", letterSpacing: "-0.8px", color: "#0f0f0f" }}>Tailor your resume to any job</h1>
-            <p style={{ color: "#666", fontSize: "14px", marginBottom: "28px", lineHeight: "1.6" }}>Paste your resume and a job description. AI rewrites every bullet using the role's exact keywords — honest, no fabrication.</p>
+            <h1 style={{ fontSize: "28px", fontWeight: "900", marginBottom: "6px", letterSpacing: "-0.8px", color: ui.text }}>Tailor your resume to any job</h1>
+            <p style={{ color: ui.muted, fontSize: "14px", marginBottom: "28px", lineHeight: "1.6" }}>Paste your resume and a job description. AI rewrites every bullet using the role's exact keywords — honest, no fabrication.</p>
 
             {/* Feature highlights */}
             <div className="feature-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: "28px" }}>
@@ -1183,10 +1230,10 @@ export default function App() {
                 { icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>, title: "Remembers You", desc: "Sign in and the AI builds on every resume you upload." },
                 { icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>, title: "Honest Fit Score", desc: "See exactly what you cover, bridge, or miss." },
               ].map(({ icon, title, desc }) => (
-                <div key={title} style={{ background: "#faf8ff", border: "1px solid #ede9ff", borderRadius: "10px", padding: "16px 14px" }}>
+                <div key={title} style={{ background: ui.surface2, border: `1px solid ${ui.border}`, borderRadius: "10px", padding: "16px 14px" }}>
                   <div style={{ marginBottom: "10px" }}>{icon}</div>
-                  <div style={{ fontSize: "12px", fontWeight: "700", marginBottom: "4px", color: "#0f0f0f" }}>{title}</div>
-                  <div style={{ fontSize: "11px", color: "#888", lineHeight: "1.6" }}>{desc}</div>
+                  <div style={{ fontSize: "12px", fontWeight: "700", marginBottom: "4px", color: ui.text }}>{title}</div>
+                  <div style={{ fontSize: "11px", color: ui.muted, lineHeight: "1.6" }}>{desc}</div>
                 </div>
               ))}
             </div>
@@ -1194,15 +1241,15 @@ export default function App() {
             {/* Memory Status */}
             {!authLoading && (
               user ? (
-                <div className="memory-card" style={{ background: savedResumeCount > 0 ? "#faf8ff" : "#fafafa", border: `1px solid ${savedResumeCount > 0 ? "#ede9ff" : "#ebebeb"}`, borderRadius: "12px", padding: "16px 18px", marginBottom: "24px", display: "flex", alignItems: "flex-start", gap: "14px" }}>
-                  <div style={{ width: "36px", height: "36px", background: savedResumeCount > 0 ? "#ede9ff" : "#f0f0f0", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <div className="memory-card" style={{ background: savedResumeCount > 0 ? (darkMode ? ui.surface2 : "#faf8ff") : ui.surface, border: `1px solid ${ui.border}`, borderRadius: "12px", padding: "16px 18px", marginBottom: "24px", display: "flex", alignItems: "flex-start", gap: "14px" }}>
+                  <div style={{ width: "36px", height: "36px", background: savedResumeCount > 0 ? (darkMode ? "#2a2240" : "#ede9ff") : (darkMode ? "#1e1a2e" : "#f0f0f0"), borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={savedResumeCount > 0 ? "#7c3aed" : "#aaa"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
                   </div>
                   <div>
-                    <div style={{ fontSize: "13px", fontWeight: "700", color: savedResumeCount > 0 ? "#7c3aed" : "#555", marginBottom: "3px" }}>
+                    <div style={{ fontSize: "13px", fontWeight: "700", color: savedResumeCount > 0 ? "#7c3aed" : ui.muted, marginBottom: "3px" }}>
                       {savedResumeCount > 0 ? `Memory active — ${savedResumeCount} resume${savedResumeCount > 1 ? "s" : ""} stored` : "Memory ready"}
                     </div>
-                    <div style={{ fontSize: "12px", color: "#888", lineHeight: "1.55" }}>
+                    <div style={{ fontSize: "12px", color: ui.muted, lineHeight: "1.55" }}>
                       {savedResumeCount > 0
                         ? "AI will draw on all your past versions to build the strongest possible match for this role."
                         : "Upload your first resume and the AI will remember your background for every future application."}
@@ -1210,16 +1257,16 @@ export default function App() {
                   </div>
                 </div>
               ) : isFirebaseReady ? (
-                <div style={{ background: "#fafafa", border: "1px solid #ebebeb", borderRadius: "12px", padding: "16px 18px", marginBottom: "24px", display: "flex", alignItems: "flex-start", gap: "14px" }}>
-                  <div style={{ width: "36px", height: "36px", background: "#f0f0f0", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <div style={{ background: ui.surface, border: `1px solid ${ui.border}`, borderRadius: "12px", padding: "16px 18px", marginBottom: "24px", display: "flex", alignItems: "flex-start", gap: "14px" }}>
+                  <div style={{ width: "36px", height: "36px", background: darkMode ? "#1e1a2e" : "#f0f0f0", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: "13px", fontWeight: "700", color: "#333", marginBottom: "3px" }}>Sign in to unlock AI Memory</div>
-                    <div style={{ fontSize: "12px", color: "#888", lineHeight: "1.55", marginBottom: "10px" }}>
+                    <div style={{ fontSize: "13px", fontWeight: "700", color: ui.text, marginBottom: "3px" }}>Sign in to unlock AI Memory</div>
+                    <div style={{ fontSize: "12px", color: ui.muted, lineHeight: "1.55", marginBottom: "10px" }}>
                       The AI remembers every resume you upload — getting sharper with each application. Your 5 daily tailors become 10.
                     </div>
-                    <button onClick={handleGoogleSignIn} style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "#fff", border: "1px solid #d0d0d0", borderRadius: "7px", padding: "7px 14px", fontSize: "12px", cursor: "pointer", fontWeight: "600", fontFamily: "inherit" }}>
+                    <button onClick={handleGoogleSignIn} style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: ui.bg, border: `1px solid ${ui.border}`, borderRadius: "7px", padding: "7px 14px", fontSize: "12px", cursor: "pointer", fontWeight: "600", fontFamily: "inherit", color: ui.text }}>
                       <svg width="14" height="14" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2a10.3 10.3 0 0 0-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92a8.78 8.78 0 0 0 2.68-6.62z"/><path fill="#34A853" d="M9 18a8.6 8.6 0 0 0 5.96-2.18l-2.91-2.26a5.4 5.4 0 0 1-8.07-2.85H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.98 10.71a5.41 5.41 0 0 1 0-3.42V4.96H.96a9 9 0 0 0 0 8.08l3.02-2.33z"/><path fill="#EA4335" d="M9 3.58a4.86 4.86 0 0 1 3.44 1.35l2.58-2.58A8.64 8.64 0 0 0 9 0 9 9 0 0 0 .96 4.96l3.02 2.33A5.36 5.36 0 0 1 9 3.58z"/></svg>
                       Continue with Google — it's free
                     </button>
@@ -1228,8 +1275,8 @@ export default function App() {
               ) : null
             )}
 
-            <h2 style={{ fontSize: "14px", fontWeight: "700", marginBottom: "6px", color: "#0f0f0f" }}>Upload Your Resume</h2>
-            <p style={{ color: "#777", fontSize: "13px", marginBottom: "14px" }}>Upload a file or paste your resume below.</p>
+            <h2 style={{ fontSize: "14px", fontWeight: "700", marginBottom: "6px", color: ui.text }}>Upload Your Resume</h2>
+            <p style={{ color: ui.muted, fontSize: "13px", marginBottom: "14px" }}>Upload a file or paste your resume below.</p>
 
             <div
               onDrop={handleDrop}
@@ -1237,23 +1284,23 @@ export default function App() {
               onDragLeave={() => setDragOver(false)}
               onClick={() => fileRef.current.click()}
               style={{
-                border: `1.5px dashed ${dragOver ? "#7c3aed" : "#ddd6fe"}`,
+                border: `1.5px dashed ${dragOver ? "#7c3aed" : (darkMode ? "#2a2240" : "#ddd6fe")}`,
                 borderRadius: "10px", padding: "32px", textAlign: "center",
-                cursor: "pointer", background: dragOver ? "#faf8ff" : "#fdfcff",
+                cursor: "pointer", background: dragOver ? (darkMode ? "#1e1a2e" : "#faf8ff") : (darkMode ? "#15121f" : "#fdfcff"),
                 transition: "all 0.15s", marginBottom: "18px",
               }}
             >
               <div style={{ marginBottom: "12px", display: "flex", justifyContent: "center" }}>
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               </div>
-              <div style={{ color: "#555", fontSize: "13px", marginBottom: "4px" }}>
+              <div style={{ color: ui.muted, fontSize: "13px", marginBottom: "4px" }}>
                 Drop file here or <span style={{ color: "#7c3aed", fontWeight: "600", textDecoration: "underline", textUnderlineOffset: "2px" }}>click to browse</span>
               </div>
-              <div style={{ color: "#bbb", fontSize: "11px" }}>Supports .docx and .txt</div>
+              <div style={{ color: darkMode ? "#443e5a" : "#bbb", fontSize: "11px" }}>Supports .docx and .txt</div>
               <input ref={fileRef} type="file" accept=".docx,.txt" style={{ display: "none" }} onChange={(e) => handleFile(e.target.files[0])} />
             </div>
 
-            <div style={{ fontSize: "12px", color: "#888", marginBottom: "8px" }}>Or paste your resume text:</div>
+            <div style={{ fontSize: "12px", color: ui.muted, marginBottom: "8px" }}>Or paste your resume text:</div>
             <textarea rows={14} value={resumeText} onChange={(e) => setResumeText(e.target.value)} placeholder="Paste your full resume here..." />
 
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px" }}>
@@ -1267,11 +1314,11 @@ export default function App() {
         {/* STEP 1: Job Description */}
         {step === 1 && (
           <div className="fade-in">
-            <h1 style={{ fontSize: "24px", fontWeight: "900", marginBottom: "6px", letterSpacing: "-0.5px" }}>Job Description</h1>
-            <p style={{ color: "#666", fontSize: "14px", marginBottom: "24px" }}>Paste the full posting — responsibilities, qualifications, requirements.</p>
+            <h1 style={{ fontSize: "24px", fontWeight: "900", marginBottom: "6px", letterSpacing: "-0.5px", color: ui.text }}>Job Description</h1>
+            <p style={{ color: ui.muted, fontSize: "14px", marginBottom: "24px" }}>Paste the full posting — responsibilities, qualifications, requirements.</p>
 
             <textarea rows={18} value={jobDesc} onChange={(e) => setJobDesc(e.target.value.slice(0, 6000))} placeholder="Paste the full job description here..." />
-            <div style={{ textAlign: "right", fontSize: "11px", color: jobDesc.length >= 6000 ? "#dc2626" : "#aaa", marginTop: "6px" }}>
+            <div style={{ textAlign: "right", fontSize: "11px", color: jobDesc.length >= 6000 ? "#dc2626" : ui.muted, marginTop: "6px" }}>
               {jobDesc.length}/6000{jobDesc.length >= 6000 ? " — limit reached" : ""}
             </div>
 
@@ -1285,8 +1332,8 @@ export default function App() {
         {/* STEP 2: Choose Theme */}
         {step === 2 && (
           <div className="fade-in">
-            <h1 style={{ fontSize: "24px", fontWeight: "900", marginBottom: "6px", letterSpacing: "-0.5px" }}>Choose a Theme</h1>
-            <p style={{ color: "#666", fontSize: "14px", marginBottom: "22px" }}>Pick the style your resume should use.</p>
+            <h1 style={{ fontSize: "24px", fontWeight: "900", marginBottom: "6px", letterSpacing: "-0.5px", color: ui.text }}>Choose a Theme</h1>
+            <p style={{ color: ui.muted, fontSize: "14px", marginBottom: "22px" }}>Pick the style your resume should use.</p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "12px", marginBottom: "28px" }}>
               {THEMES.map((theme) => (
                 <div
@@ -1303,8 +1350,8 @@ export default function App() {
                     <div style={{ width: "85%", height: "3px", background: theme.preview.text, borderRadius: "2px", marginBottom: "3px", opacity: 0.15 }} />
                     <div style={{ width: "70%", height: "3px", background: theme.preview.text, borderRadius: "2px", opacity: 0.15 }} />
                   </div>
-                  <div style={{ fontWeight: "600", fontSize: "13px", marginBottom: "3px" }}>{theme.name}</div>
-                  <div style={{ fontSize: "11px", color: "#888", lineHeight: "1.4" }}>{theme.desc}</div>
+                  <div style={{ fontWeight: "600", fontSize: "13px", marginBottom: "3px", color: ui.text }}>{theme.name}</div>
+                  <div style={{ fontSize: "11px", color: ui.muted, lineHeight: "1.4" }}>{theme.desc}</div>
                   {selectedTheme.id === theme.id && (
                     <div style={{ marginTop: "8px", fontSize: "11px", color: "#7c3aed", fontWeight: "700" }}>✓ Selected</div>
                   )}
@@ -1322,8 +1369,8 @@ export default function App() {
         {/* STEP 3: Generate */}
         {step === 3 && (
           <div className="fade-in" style={{ textAlign: "center", padding: "32px 0" }}>
-            <h1 style={{ fontSize: "26px", fontWeight: "900", marginBottom: "8px", letterSpacing: "-0.5px" }}>Ready to Generate</h1>
-            <p style={{ color: "#666", fontSize: "14px", maxWidth: "380px", margin: "0 auto 24px", lineHeight: "1.6" }}>
+            <h1 style={{ fontSize: "26px", fontWeight: "900", marginBottom: "8px", letterSpacing: "-0.5px", color: ui.text }}>Ready to Generate</h1>
+            <p style={{ color: ui.muted, fontSize: "14px", maxWidth: "380px", margin: "0 auto 24px", lineHeight: "1.6" }}>
               AI will rewrite your resume using the job description's exact keywords and language.
             </p>
 
@@ -1333,9 +1380,9 @@ export default function App() {
                 { label: "Resume", value: `${resumeText.trim().split(/\s+/).length} words` },
                 { label: "Job Description", value: `${jobDesc.trim().split(/\s+/).length} words` },
               ].map((item, i) => (
-                <div key={i} style={{ background: "#faf8ff", border: "1px solid #ede9ff", borderRadius: "10px", padding: "12px 20px", minWidth: "120px" }}>
+                <div key={i} style={{ background: ui.surface2, border: `1px solid ${ui.border}`, borderRadius: "10px", padding: "12px 20px", minWidth: "120px" }}>
                   <div style={{ fontSize: "16px", fontWeight: "800", color: "#7c3aed" }}>{item.value}</div>
-                  <div style={{ fontSize: "11px", color: "#999", marginTop: "3px", textTransform: "uppercase", letterSpacing: "0.5px" }}>{item.label}</div>
+                  <div style={{ fontSize: "11px", color: ui.muted, marginTop: "3px", textTransform: "uppercase", letterSpacing: "0.5px" }}>{item.label}</div>
                 </div>
               ))}
             </div>
@@ -1357,7 +1404,7 @@ export default function App() {
                 }}>
                   {LOADING_MESSAGES[loadingMsgIdx]}
                 </div>
-                <p style={{ color: "#bbb", fontSize: "12px" }}>This takes about 20–30 seconds</p>
+                <p style={{ color: ui.muted, fontSize: "12px" }}>This takes about 20–30 seconds</p>
               </div>
             )}
 
@@ -1382,7 +1429,7 @@ export default function App() {
             <div className="step4-top" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", gap: "12px" }}>
               <div>
                 <h1 style={{ fontSize: "20px", fontWeight: "700", marginBottom: "3px" }}>Your Tailored Resume</h1>
-                <p style={{ color: "#888", fontSize: "13px" }}>Theme: {selectedTheme.name}</p>
+                <p style={{ color: ui.muted, fontSize: "13px" }}>Theme: {selectedTheme.name}</p>
               </div>
               <div className="step4-buttons" style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 <button className="btn-ghost" onClick={() => { setGenerated(null); setStep(2); }}>Change Theme</button>
@@ -1409,7 +1456,7 @@ export default function App() {
               const scoreColor = generated.matchScore >= 70 ? "#16a34a" : generated.matchScore >= 50 ? "#ca8a04" : "#dc2626";
 
               return (
-                <div style={{ background: "#fff", border: "1px solid #e0e0e0", borderRadius: "10px", overflow: "hidden", marginBottom: "20px" }}>
+                <div style={{ background: ui.surface, border: `1px solid ${ui.border}`, borderRadius: "10px", overflow: "hidden", marginBottom: "20px" }}>
 
                   {/* Recommendation banner */}
                   <div style={{ background: recBg, borderBottom: `1px solid ${recBorder}`, padding: "14px 20px", display: "flex", alignItems: "flex-start", gap: "12px" }}>
@@ -1439,7 +1486,7 @@ export default function App() {
                         </div>
                         <div style={{ fontSize: "10px", color: "#888", marginTop: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>JD Match</div>
                       </div>
-                      <div style={{ fontSize: "12px", color: "#555", lineHeight: "1.6" }}>
+                      <div style={{ fontSize: "12px", color: ui.muted, lineHeight: "1.6" }}>
                         Resume rewritten to maximally cover what you genuinely have. No skills fabricated.
                         {generated.bridgedGaps?.length > 0 && ` ${generated.bridgedGaps.length} gap(s) partially addressed with transferable experience.`}
                       </div>
@@ -1454,7 +1501,7 @@ export default function App() {
                           {generated.covered.map((item, i) => (
                             <div key={i} style={{ display: "flex", gap: "6px", marginBottom: "5px", alignItems: "flex-start" }}>
                               <span style={{ color: "#16a34a", fontSize: "11px", flexShrink: 0, marginTop: "2px" }}>✓</span>
-                              <span style={{ fontSize: "12px", color: "#333", lineHeight: "1.4" }}>{item}</span>
+                              <span style={{ fontSize: "12px", color: ui.text, lineHeight: "1.4" }}>{item}</span>
                             </div>
                           ))}
                         </div>
@@ -1467,7 +1514,7 @@ export default function App() {
                           {generated.bridgedGaps.map((item, i) => (
                             <div key={i} style={{ display: "flex", gap: "6px", marginBottom: "5px", alignItems: "flex-start" }}>
                               <span style={{ color: "#ca8a04", fontSize: "11px", flexShrink: 0, marginTop: "2px" }}>~</span>
-                              <span style={{ fontSize: "12px", color: "#333", lineHeight: "1.4" }}>{item}</span>
+                              <span style={{ fontSize: "12px", color: ui.text, lineHeight: "1.4" }}>{item}</span>
                             </div>
                           ))}
                         </div>
@@ -1480,7 +1527,7 @@ export default function App() {
                           {generated.gaps.map((item, i) => (
                             <div key={i} style={{ display: "flex", gap: "6px", marginBottom: "5px", alignItems: "flex-start" }}>
                               <span style={{ color: "#dc2626", fontSize: "11px", flexShrink: 0, marginTop: "2px" }}>✗</span>
-                              <span style={{ fontSize: "12px", color: "#333", lineHeight: "1.4" }}>{item}</span>
+                              <span style={{ fontSize: "12px", color: ui.text, lineHeight: "1.4" }}>{item}</span>
                             </div>
                           ))}
                         </div>
@@ -1499,9 +1546,9 @@ export default function App() {
                   onClick={() => setSelectedTheme(t)}
                   style={{
                     padding: "5px 14px", borderRadius: "20px", cursor: "pointer",
-                    border: `1px solid ${selectedTheme.id === t.id ? "#1a1a1a" : "#d0d0d0"}`,
-                    background: selectedTheme.id === t.id ? "#1a1a1a" : "#fff",
-                    color: selectedTheme.id === t.id ? "#fff" : "#555",
+                    border: `1px solid ${selectedTheme.id === t.id ? (darkMode ? "#c4b5fd" : "#1a1a1a") : ui.border}`,
+                    background: selectedTheme.id === t.id ? (darkMode ? "#2a2240" : "#1a1a1a") : ui.surface,
+                    color: selectedTheme.id === t.id ? (darkMode ? "#ede9f4" : "#fff") : ui.muted,
                     fontSize: "12px", transition: "all 0.15s",
                   }}
                 >

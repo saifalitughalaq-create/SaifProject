@@ -18,9 +18,13 @@ const icons = {
   export:   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
 };
 
-export default function LandingPage({ onStart, user, onSignIn, onSignOut }) {
+export default function LandingPage({ onStart, user, onSignIn, onSignOut, darkMode, onToggleDark }) {
+  const DARK = { bg: "#0d0d14", surface: "#15121f", surface2: "#1e1a2e", border: "#2a2240", text: "#ede9f4", muted: "#8880a0" };
+  const LIGHT = { bg: "#ffffff", surface: "#fafafa", surface2: "#faf8ff", border: "#ebebeb", text: "#0f0f0f", muted: "#555" };
+  const lp = darkMode ? DARK : LIGHT;
+
   return (
-    <div style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", color: "#0f0f0f", background: "#fff", minHeight: "100vh" }}>
+    <div className={darkMode ? "lp-dark" : undefined} style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", color: lp.text, background: lp.bg, minHeight: "100vh" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
         .lp-btn-primary {
@@ -36,21 +40,27 @@ export default function LandingPage({ onStart, user, onSignIn, onSignOut }) {
           cursor: pointer; transition: border-color 0.15s, color 0.15s; font-family: inherit;
         }
         .lp-btn-ghost:hover { border-color: #7c3aed; color: #7c3aed; }
+        .lp-dark .lp-btn-ghost { color: #c4b5fd !important; border-color: #2a2240 !important; }
+        .lp-dark .lp-btn-ghost:hover { border-color: #7c3aed !important; color: #7c3aed !important; }
         .lp-step-card {
           background: #fff; border: 1px solid #ebebeb; border-radius: 16px;
           padding: 32px 28px; flex: 1;
           transition: box-shadow 0.2s, transform 0.2s;
         }
         .lp-step-card:hover { box-shadow: 0 8px 32px rgba(124,58,237,0.08); transform: translateY(-2px); }
+        .lp-dark .lp-step-card { background: #15121f !important; border-color: #2a2240 !important; }
         .lp-feat-card {
           background: #faf8ff; border: 1px solid #ede9ff; border-radius: 16px;
           padding: 28px 24px; transition: box-shadow 0.2s;
         }
         .lp-feat-card:hover { box-shadow: 0 4px 20px rgba(124,58,237,0.07); }
+        .lp-dark .lp-feat-card { background: #15121f !important; border-color: #2a2240 !important; }
         .lp-cta-section {
           background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
           border-radius: 24px; padding: 72px 48px; text-align: center; color: #fff;
         }
+        .lp-dark-toggle { background: transparent; border: none; cursor: pointer; padding: 5px; border-radius: 6px; display: flex; align-items: center; transition: opacity 0.15s; }
+        .lp-dark-toggle:hover { opacity: 0.7; }
         @media (max-width: 640px) {
           .lp-hero-headline { font-size: 36px !important; letter-spacing: -1px !important; }
           .lp-steps-grid { flex-direction: column !important; }
@@ -65,26 +75,34 @@ export default function LandingPage({ onStart, user, onSignIn, onSignOut }) {
       `}</style>
 
       {/* Header */}
-      <div style={{ borderBottom: "1px solid #f0f0f0", padding: "0 24px", position: "sticky", top: 0, background: "#fff", zIndex: 100 }}>
+      <div style={{ borderBottom: `1px solid ${lp.border}`, padding: "0 24px", position: "sticky", top: 0, background: lp.bg, zIndex: 100 }}>
         <div style={{ maxWidth: "1000px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: "58px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontWeight: "900", fontSize: "18px", letterSpacing: "-0.5px", color: "#0f0f0f" }}>ResumeJD</span>
+            <span style={{ fontWeight: "900", fontSize: "18px", letterSpacing: "-0.5px", color: lp.text }}>ResumeJD</span>
             <span style={{ background: "#f0eaff", color: "#7c3aed", fontSize: "10px", fontWeight: "700", padding: "2px 8px", borderRadius: "20px", letterSpacing: "0.3px" }}>FREE</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             {user ? (
               <>
-                <span style={{ fontSize: "13px", color: "#666" }}>Hi, {user.displayName?.split(" ")[0]}</span>
+                <span style={{ fontSize: "13px", color: lp.muted }}>Hi, {user.displayName?.split(" ")[0]}</span>
                 <button className="lp-btn-ghost" onClick={onStart}>Go to app</button>
               </>
             ) : (
               <>
                 <button className="lp-btn-ghost lp-hide-mobile" onClick={onSignIn}>Sign in</button>
-                <button onClick={onStart} style={{ background: "#0f0f0f", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 18px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit" }}>
+                <button onClick={onStart} style={{ background: lp.text, color: lp.bg, border: "none", borderRadius: "8px", padding: "8px 18px", fontSize: "13px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit" }}>
                   Try Free
                 </button>
               </>
             )}
+            {/* Dark mode toggle */}
+            <button className="lp-dark-toggle" onClick={onToggleDark} title={darkMode ? "Light mode" : "Dark mode"} style={{ color: lp.muted }}>
+              {darkMode ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+              )}
+            </button>
           </div>
         </div>
       </div>
@@ -96,13 +114,13 @@ export default function LandingPage({ onStart, user, onSignIn, onSignOut }) {
           <span style={{ fontSize: "12px", fontWeight: "600", color: "#7c3aed" }}>AI-Powered Resume Tailor</span>
         </div>
 
-        <h1 className="lp-hero-headline" style={{ fontSize: "56px", fontWeight: "900", lineHeight: "1.08", letterSpacing: "-2px", marginBottom: "22px", color: "#0f0f0f" }}>
+        <h1 className="lp-hero-headline" style={{ fontSize: "56px", fontWeight: "900", lineHeight: "1.08", letterSpacing: "-2px", marginBottom: "22px", color: lp.text }}>
           Land More Interviews<br />
           <span style={{ color: "#7c3aed" }}>with a Resume Built</span><br />
           for Every Job
         </h1>
 
-        <p style={{ fontSize: "18px", color: "#555", lineHeight: "1.65", maxWidth: "560px", margin: "0 auto 36px", fontWeight: "400" }}>
+        <p style={{ fontSize: "18px", color: lp.muted, lineHeight: "1.65", maxWidth: "560px", margin: "0 auto 36px", fontWeight: "400" }}>
           Paste your resume and any job description. Our AI rewrites your resume using your real experience — optimized for ATS, tailored to the role.
         </p>
 
@@ -115,7 +133,7 @@ export default function LandingPage({ onStart, user, onSignIn, onSignOut }) {
         </div>
 
         {/* Stats */}
-        <div style={{ display: "flex", justifyContent: "center", gap: "48px", marginTop: "64px", paddingTop: "40px", borderTop: "1px solid #f0f0f0", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: "48px", marginTop: "64px", paddingTop: "40px", borderTop: `1px solid ${lp.border}`, flexWrap: "wrap" }}>
           {[
             { stat: "< 30s", label: "Resume rewritten" },
             { stat: "100%", label: "Your real experience" },
@@ -124,18 +142,18 @@ export default function LandingPage({ onStart, user, onSignIn, onSignOut }) {
           ].map(({ stat, label }) => (
             <div key={label} style={{ textAlign: "center" }}>
               <div style={{ fontSize: "26px", fontWeight: "900", color: "#7c3aed", letterSpacing: "-0.5px" }}>{stat}</div>
-              <div style={{ fontSize: "12px", color: "#999", marginTop: "3px" }}>{label}</div>
+              <div style={{ fontSize: "12px", color: lp.muted, marginTop: "3px" }}>{label}</div>
             </div>
           ))}
         </div>
       </div>
 
       {/* How it works */}
-      <div className="lp-section-pad" style={{ padding: "80px 24px", background: "#fafafa" }}>
+      <div className="lp-section-pad" style={{ padding: "80px 24px", background: lp.surface }}>
         <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: "52px" }}>
             <div style={{ fontSize: "11px", fontWeight: "700", color: "#7c3aed", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "12px" }}>How it works</div>
-            <h2 style={{ fontSize: "36px", fontWeight: "800", letterSpacing: "-1px", color: "#0f0f0f" }}>Three steps to a tailored resume</h2>
+            <h2 style={{ fontSize: "36px", fontWeight: "800", letterSpacing: "-1px", color: lp.text }}>Three steps to a tailored resume</h2>
           </div>
 
           <div className="lp-steps-grid" style={{ display: "flex", gap: "16px" }}>
@@ -149,8 +167,8 @@ export default function LandingPage({ onStart, user, onSignIn, onSignOut }) {
                   <div style={{ width: "30px", height: "30px", background: "#7c3aed", color: "#fff", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "800", flexShrink: 0 }}>{n}</div>
                   <div style={{ background: "#f0eaff", borderRadius: "10px", padding: "8px", display: "flex" }}>{icon}</div>
                 </div>
-                <div style={{ fontSize: "15px", fontWeight: "700", marginBottom: "8px", color: "#0f0f0f" }}>{title}</div>
-                <div style={{ fontSize: "13px", color: "#777", lineHeight: "1.7" }}>{desc}</div>
+                <div style={{ fontSize: "15px", fontWeight: "700", marginBottom: "8px", color: lp.text }}>{title}</div>
+                <div style={{ fontSize: "13px", color: lp.muted, lineHeight: "1.7" }}>{desc}</div>
               </div>
             ))}
           </div>
@@ -158,7 +176,7 @@ export default function LandingPage({ onStart, user, onSignIn, onSignOut }) {
       </div>
 
       {/* Memory Feature — hero section */}
-      <div className="lp-section-pad" style={{ padding: "80px 24px", background: "#fff" }}>
+      <div className="lp-section-pad" style={{ padding: "80px 24px", background: lp.bg }}>
         <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
           <div className="lp-memory-flex" style={{ display: "flex", alignItems: "center", gap: "60px", flexWrap: "wrap" }}>
             {/* Left: visual */}
@@ -189,8 +207,8 @@ export default function LandingPage({ onStart, user, onSignIn, onSignOut }) {
             {/* Right: copy */}
             <div style={{ flex: 1, minWidth: "260px" }}>
               <div style={{ fontSize: "11px", fontWeight: "700", color: "#7c3aed", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "14px" }}>AI Memory</div>
-              <h2 style={{ fontSize: "34px", fontWeight: "900", letterSpacing: "-1px", lineHeight: "1.1", marginBottom: "18px", color: "#0f0f0f" }}>Gets smarter every time you use it</h2>
-              <p style={{ fontSize: "15px", color: "#555", lineHeight: "1.7", marginBottom: "20px" }}>
+              <h2 style={{ fontSize: "34px", fontWeight: "900", letterSpacing: "-1px", lineHeight: "1.1", marginBottom: "18px", color: lp.text }}>Gets smarter every time you use it</h2>
+              <p style={{ fontSize: "15px", color: lp.muted, lineHeight: "1.7", marginBottom: "20px" }}>
                 Sign in and every resume you upload is saved to your AI memory. When you apply to a new role, the AI draws on your entire history — picking the most relevant experience across all versions.
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "28px" }}>
@@ -203,11 +221,11 @@ export default function LandingPage({ onStart, user, onSignIn, onSignOut }) {
                     <div style={{ width: "18px", height: "18px", background: "#ede9ff", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: "1px" }}>
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                     </div>
-                    <span style={{ fontSize: "13px", color: "#555", lineHeight: "1.6" }}>{point}</span>
+                    <span style={{ fontSize: "13px", color: lp.muted, lineHeight: "1.6" }}>{point}</span>
                   </div>
                 ))}
               </div>
-              <button onClick={onSignIn} style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "#fff", border: "1.5px solid #ddd6fe", borderRadius: "9px", padding: "10px 18px", fontSize: "13px", cursor: "pointer", fontWeight: "600", color: "#7c3aed", fontFamily: "inherit", transition: "border-color 0.15s" }}>
+              <button onClick={onSignIn} style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: lp.surface, border: `1.5px solid ${darkMode ? "#2a2240" : "#ddd6fe"}`, borderRadius: "9px", padding: "10px 18px", fontSize: "13px", cursor: "pointer", fontWeight: "600", color: "#7c3aed", fontFamily: "inherit", transition: "border-color 0.15s" }}>
                 <svg width="15" height="15" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2a10.3 10.3 0 0 0-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92a8.78 8.78 0 0 0 2.68-6.62z"/><path fill="#34A853" d="M9 18a8.6 8.6 0 0 0 5.96-2.18l-2.91-2.26a5.4 5.4 0 0 1-8.07-2.85H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.98 10.71a5.41 5.41 0 0 1 0-3.42V4.96H.96a9 9 0 0 0 0 8.08l3.02-2.33z"/><path fill="#EA4335" d="M9 3.58a4.86 4.86 0 0 1 3.44 1.35l2.58-2.58A8.64 8.64 0 0 0 9 0 9 9 0 0 0 .96 4.96l3.02 2.33A5.36 5.36 0 0 1 9 3.58z"/></svg>
                 Sign in free to enable Memory
               </button>
@@ -217,11 +235,11 @@ export default function LandingPage({ onStart, user, onSignIn, onSignOut }) {
       </div>
 
       {/* Features grid */}
-      <div className="lp-section-pad" style={{ padding: "80px 24px", background: "#fafafa" }}>
+      <div className="lp-section-pad" style={{ padding: "80px 24px", background: lp.surface }}>
         <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: "52px" }}>
             <div style={{ fontSize: "11px", fontWeight: "700", color: "#7c3aed", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "12px" }}>Why ResumeJD</div>
-            <h2 style={{ fontSize: "36px", fontWeight: "800", letterSpacing: "-1px", color: "#0f0f0f" }}>Built differently from other resume tools</h2>
+            <h2 style={{ fontSize: "36px", fontWeight: "800", letterSpacing: "-1px", color: lp.text }}>Built differently from other resume tools</h2>
           </div>
 
           <div className="lp-feat-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px" }}>
@@ -233,10 +251,10 @@ export default function LandingPage({ onStart, user, onSignIn, onSignOut }) {
               { icon: icons.export,  title: "PDF & DOCX",      desc: "Clean, ATS-readable text-based PDF and Word download." },
               { icon: icons.layers,  title: "Always Improving",desc: "Each application builds on the last. Your profile gets richer over time." },
             ].map(({ icon, title, desc }) => (
-              <div key={title} className="lp-feat-card" style={{ background: "#fff", border: "1px solid #ebebeb" }}>
-                <div style={{ background: "#f0eaff", borderRadius: "10px", padding: "9px", display: "inline-flex", marginBottom: "14px" }}>{icon}</div>
-                <div style={{ fontSize: "13px", fontWeight: "700", marginBottom: "6px", color: "#0f0f0f" }}>{title}</div>
-                <div style={{ fontSize: "12px", color: "#888", lineHeight: "1.65" }}>{desc}</div>
+              <div key={title} className="lp-feat-card">
+                <div style={{ background: darkMode ? "#2a2240" : "#f0eaff", borderRadius: "10px", padding: "9px", display: "inline-flex", marginBottom: "14px" }}>{icon}</div>
+                <div style={{ fontSize: "13px", fontWeight: "700", marginBottom: "6px", color: lp.text }}>{title}</div>
+                <div style={{ fontSize: "12px", color: lp.muted, lineHeight: "1.65" }}>{desc}</div>
               </div>
             ))}
           </div>
@@ -244,14 +262,14 @@ export default function LandingPage({ onStart, user, onSignIn, onSignOut }) {
       </div>
 
       {/* On the go section */}
-      <div className="lp-section-pad" style={{ padding: "80px 24px", background: "#fff", borderTop: "1px solid #f0f0f0" }}>
+      <div className="lp-section-pad" style={{ padding: "80px 24px", background: lp.bg, borderTop: `1px solid ${lp.border}` }}>
         <div style={{ maxWidth: "1000px", margin: "0 auto", textAlign: "center" }}>
           <div style={{ fontSize: "11px", fontWeight: "700", color: "#7c3aed", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "14px" }}>Mobile ready</div>
-          <h2 style={{ fontSize: "36px", fontWeight: "900", letterSpacing: "-1px", color: "#0f0f0f", marginBottom: "14px", lineHeight: "1.1" }}>
+          <h2 style={{ fontSize: "36px", fontWeight: "900", letterSpacing: "-1px", color: lp.text, marginBottom: "14px", lineHeight: "1.1" }}>
             Make resume on the go.<br />
             <span style={{ color: "#7c3aed" }}>Whenever. Wherever.</span>
           </h2>
-          <p style={{ fontSize: "16px", color: "#666", maxWidth: "500px", margin: "0 auto 40px", lineHeight: "1.65" }}>
+          <p style={{ fontSize: "16px", color: lp.muted, maxWidth: "500px", margin: "0 auto 40px", lineHeight: "1.65" }}>
             Spot a job listing on your phone? Tailor your resume right there and then. No laptop needed.
           </p>
 
@@ -290,12 +308,12 @@ export default function LandingPage({ onStart, user, onSignIn, onSignOut }) {
               { os: "iPhone / Safari", steps: ["Tap the Share button", "Select Add to Home Screen", "Tap Add"] },
               { os: "Android / Chrome", steps: ["Tap the menu ( ⋮ )", "Select Add to Home Screen", "Tap Add"] },
             ].map(({ os, steps }) => (
-              <div key={os} style={{ background: "#faf8ff", border: "1px solid #ede9ff", borderRadius: "14px", padding: "20px 24px", minWidth: "200px", textAlign: "left" }}>
+              <div key={os} style={{ background: lp.surface2, border: `1px solid ${lp.border}`, borderRadius: "14px", padding: "20px 24px", minWidth: "200px", textAlign: "left" }}>
                 <div style={{ fontSize: "12px", fontWeight: "700", color: "#7c3aed", marginBottom: "12px" }}>{os}</div>
                 {steps.map((s, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: "8px", marginBottom: "8px" }}>
                     <div style={{ width: "18px", height: "18px", background: "#7c3aed", color: "#fff", borderRadius: "50%", fontSize: "9px", fontWeight: "800", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</div>
-                    <span style={{ fontSize: "12px", color: "#555", lineHeight: "1.5" }}>{s}</span>
+                    <span style={{ fontSize: "12px", color: lp.muted, lineHeight: "1.5" }}>{s}</span>
                   </div>
                 ))}
               </div>
@@ -306,7 +324,7 @@ export default function LandingPage({ onStart, user, onSignIn, onSignOut }) {
       </div>
 
       {/* CTA */}
-      <div className="lp-section-pad" style={{ padding: "80px 24px", background: "#fafafa" }}>
+      <div className="lp-section-pad" style={{ padding: "80px 24px", background: lp.surface }}>
         <div style={{ maxWidth: "680px", margin: "0 auto" }}>
           <div className="lp-cta-section">
             <div style={{ fontSize: "11px", fontWeight: "700", color: "#c4b5fd", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "18px" }}>Get started free</div>
@@ -324,9 +342,9 @@ export default function LandingPage({ onStart, user, onSignIn, onSignOut }) {
       </div>
 
       {/* Footer */}
-      <div style={{ borderTop: "1px solid #f0f0f0", padding: "28px 24px" }}>
+      <div style={{ borderTop: `1px solid ${lp.border}`, padding: "28px 24px", background: lp.bg }}>
         <div style={{ maxWidth: "1000px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
-          <span style={{ fontWeight: "900", fontSize: "15px", letterSpacing: "-0.3px" }}>ResumeJD</span>
+          <span style={{ fontWeight: "900", fontSize: "15px", letterSpacing: "-0.3px", color: lp.text }}>ResumeJD</span>
           <span style={{ fontSize: "12px", color: "#bbb" }}>© 2026 ResumeJD. Free AI resume tailor.</span>
         </div>
       </div>

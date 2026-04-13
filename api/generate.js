@@ -113,17 +113,19 @@ export default async function handler(req, res) {
 ━━━ PERMITTED SKILL ADDITIONS (Skills section only — not experience bullets) ━━━
 You may add the following to the Skills section even if not explicitly in the resume:
 
-A. Easily acquirable tools and software (learnable in days to months) if required by the JD:
-   MS Excel, Google Sheets, ERP systems, QuickBooks, Sage, Xero, SAP basics, FreshBooks
-   MS Office Suite, Google Workspace, Outlook, Teams, Zoom, Asana, Trello, Slack
+A. Easily acquirable tools — ONLY add items the JD explicitly names OR that are core to the primary function of the role. Do NOT add tools just because they appear on this list:
+   MS Excel, Google Sheets, QuickBooks, Sage, Xero, FreshBooks, SAP basics
+   MS Office Suite, Google Workspace, Outlook, Teams, Slack
    Salesforce basics, HubSpot, Google Analytics, Mailchimp
-   Canadian GAAP, GST/HST, bank reconciliation tools, basic bookkeeping software
+   Canadian GAAP, GST/HST, payroll processing
 
-B. Interchangeable tools — if person knows one, add the JD's equivalent:
+B. Interchangeable tools — if person knows one, add the JD's named equivalent only:
    QuickBooks ↔ Sage ↔ Xero ↔ FreshBooks | Excel ↔ Google Sheets | SAP ↔ Oracle ↔ Dynamics ↔ NetSuite
    Salesforce ↔ HubSpot ↔ Zoho | Jira ↔ Asana ↔ Trello ↔ Monday | Slack ↔ Teams
 
 C. Every skill, tool, and certification from ANY past resume version
+
+CRITICAL: NEVER use category labels as skill entries — "bank reconciliation tools", "basic bookkeeping software", "collaboration tools", "communication tools", "Technical Tools", "ERP systems", "project management tools" are CATEGORY DESCRIPTIONS, not skills. Use specific tool names only (QuickBooks, Sage, Jira — never the category). If no specific tool name is known, omit entirely.
 
 ━━━ REWRITING APPROACH ━━━
 1. Build master profile: current resume + all past versions + permitted additions above
@@ -156,7 +158,10 @@ ALWAYS INCLUDE: every technical skill, tool, software, platform, certification, 
 INCLUDE ONLY IF JD EXPLICITLY REQUIRES IT: soft skills, using the JD's own phrasing (2-3 words max)
    Example: JD says "cross-functional collaboration" → include "Cross-functional Collaboration"
 
-NEVER INCLUDE: generic filler — "detail-oriented", "team player", "strong work ethic", "excellent organizational skills", "committed to accuracy", "ability to work independently"
+NEVER INCLUDE:
+  • Generic filler — "detail-oriented", "team player", "strong work ethic", "excellent organizational skills", "committed to accuracy", "ability to work independently"
+  • Category/descriptor labels — "bank reconciliation tools", "basic bookkeeping software", "Technical Tools", "collaboration tools", "communication tools", "ERP systems", "project management software" — these are headings, not skills
+  • Tools not relevant to this specific JD — do not dump every permitted tool; only include what this JD actually needs
 
 ━━━ OUTPUT FORMAT — plain text only, no markdown ━━━
 MATCH_SCORE: [0-100]
@@ -208,8 +213,8 @@ BEGIN OUTPUT:`;
 RULES:
 - Only use real companies/titles from the resume — never invent jobs or use [brackets]
 - Each job and education entry appears exactly once
-- Skills: include every hard skill the JD requires — map from their background using interchangeable tools and permitted additions. No soft skills, no generic phrases.
-- Add implied tools for their industry (Excel/Sheets for finance, QuickBooks/Sage interchangeable, SAP basics for ops, etc.)
+- Skills: include only hard skills the JD explicitly requires — use specific tool names, never category labels like "bank reconciliation tools", "Technical Tools", "collaboration tools". No soft skills, no generic phrases.
+- Add interchangeable tools only when JD names them (QuickBooks↔Sage, Excel↔Sheets, Slack↔Teams). Do not add every tool from a category list.
 - Paraphrase experience bullets using JD keywords — 5-6 bullets per job
 - True gaps only: list in GAPS and REASON
 
