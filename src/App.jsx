@@ -502,15 +502,15 @@ export default function App() {
   const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
 
   const LOADING_MESSAGES = [
-    { emoji: "✨", text: "Crafting your masterpiece..." },
-    { emoji: "🔍", text: "Reading the job description..." },
-    { emoji: "🧠", text: "Analyzing your experience..." },
-    { emoji: "🎯", text: "Matching keywords to the role..." },
-    { emoji: "✍️", text: "Rewriting every bullet point..." },
-    { emoji: "🚀", text: "Work in progress..." },
-    { emoji: "⚙️", text: "Optimizing for ATS filters..." },
-    { emoji: "💎", text: "Polishing the final draft..." },
-    { emoji: "🏆", text: "Almost there — making it perfect..." },
+    "Crafting your masterpiece...",
+    "Reading the job description...",
+    "Analyzing your experience...",
+    "Matching keywords to the role...",
+    "Rewriting every bullet point...",
+    "Work in progress...",
+    "Optimizing for ATS filters...",
+    "Polishing the final draft...",
+    "Almost there — making it perfect...",
   ];
   const [savedToast, setSavedToast] = useState(null); // { count: N }
   const [resetCountdown, setResetCountdown] = useState(getResetCountdown());
@@ -895,7 +895,9 @@ export default function App() {
           onClick={() => setShowPaywall(false)}>
           <div style={{ background: "#fff", borderRadius: "14px", padding: "36px", maxWidth: "420px", width: "100%", textAlign: "center" }}
             onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: "36px", marginBottom: "16px" }}>⚡</div>
+            <div style={{ width: "48px", height: "48px", background: "#faf8ff", border: "1px solid #ede9ff", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              </div>
             <h2 style={{ fontSize: "20px", fontWeight: "700", marginBottom: "8px" }}>
               {user ? `Daily limit reached` : `You've used today's ${GUEST_LIMIT} free generations`}
             </h2>
@@ -932,7 +934,9 @@ export default function App() {
           onClick={() => { setShowMemoryPromo(false); localStorage.setItem("rt_memory_seen", "1"); }}>
           <div style={{ background: "#fff", borderRadius: "16px", padding: "40px 36px", maxWidth: "400px", width: "100%", textAlign: "center" }}
             onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: "40px", marginBottom: "16px" }}>🧠</div>
+            <div style={{ width: "52px", height: "52px", background: "#faf8ff", border: "1px solid #ede9ff", borderRadius: "16px", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px" }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+              </div>
             <h2 style={{ fontSize: "20px", fontWeight: "700", marginBottom: "10px", letterSpacing: "-0.3px" }}>
               Your resume gets smarter over time
             </h2>
@@ -968,7 +972,9 @@ export default function App() {
           boxShadow: "0 8px 32px rgba(0,0,0,0.22)", fontSize: "13px", fontWeight: "500",
           animation: "slideUp 0.3s ease",
         }}>
-          <span style={{ fontSize: "20px" }}>🧠</span>
+          <div style={{ width: "34px", height: "34px", background: "#fff", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+            </div>
           <div>
             <div style={{ fontWeight: "700", marginBottom: "2px" }}>
               {savedToast.saved ? `Resume #${savedToast.resumeCount} saved to memory` : "Same resume detected"}
@@ -1053,12 +1059,12 @@ export default function App() {
             {/* Feature highlights */}
             <div className="feature-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: "28px" }}>
               {[
-                { icon: "🎯", title: "Tailored to the JD", desc: "Every bullet rewritten using the job's exact keywords." },
-                { icon: "🧠", title: "Remembers You", desc: "Sign in and the AI builds on every resume you upload." },
-                { icon: "✅", title: "Honest Fit Score", desc: "See exactly what you cover, bridge, or miss." },
+                { icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>, title: "Tailored to the JD", desc: "Every bullet rewritten using the job's exact keywords." },
+                { icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>, title: "Remembers You", desc: "Sign in and the AI builds on every resume you upload." },
+                { icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>, title: "Honest Fit Score", desc: "See exactly what you cover, bridge, or miss." },
               ].map(({ icon, title, desc }) => (
                 <div key={title} style={{ background: "#faf8ff", border: "1px solid #ede9ff", borderRadius: "10px", padding: "16px 14px" }}>
-                  <div style={{ fontSize: "20px", marginBottom: "8px" }}>{icon}</div>
+                  <div style={{ marginBottom: "10px" }}>{icon}</div>
                   <div style={{ fontSize: "12px", fontWeight: "700", marginBottom: "4px", color: "#0f0f0f" }}>{title}</div>
                   <div style={{ fontSize: "11px", color: "#888", lineHeight: "1.6" }}>{desc}</div>
                 </div>
@@ -1080,11 +1086,13 @@ export default function App() {
                 transition: "all 0.15s", marginBottom: "18px",
               }}
             >
-              <div style={{ fontSize: "28px", marginBottom: "10px" }}>📄</div>
-              <div style={{ color: "#555", fontSize: "13px", marginBottom: "4px" }}>
-                Drop file here or <span style={{ textDecoration: "underline" }}>click to browse</span>
+              <div style={{ marginBottom: "12px", display: "flex", justifyContent: "center" }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               </div>
-              <div style={{ color: "#aaa", fontSize: "11px" }}>Supports .docx and .txt</div>
+              <div style={{ color: "#555", fontSize: "13px", marginBottom: "4px" }}>
+                Drop file here or <span style={{ color: "#7c3aed", fontWeight: "600", textDecoration: "underline", textUnderlineOffset: "2px" }}>click to browse</span>
+              </div>
+              <div style={{ color: "#bbb", fontSize: "11px" }}>Supports .docx and .txt</div>
               <input ref={fileRef} type="file" accept=".docx,.txt" style={{ display: "none" }} onChange={(e) => handleFile(e.target.files[0])} />
             </div>
 
@@ -1180,17 +1188,17 @@ export default function App() {
                 {/* Spinner ring */}
                 <div style={{ position: "relative", width: "64px", height: "64px" }}>
                   <div className="spinner" style={{ width: "64px", height: "64px", border: "4px solid #ede9ff", borderTopColor: "#7c3aed" }} />
-                  <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px" }}>
-                    {LOADING_MESSAGES[loadingMsgIdx].emoji}
+                  <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div style={{ width: "10px", height: "10px", background: "#7c3aed", borderRadius: "50%", opacity: 0.4 }} />
                   </div>
                 </div>
                 {/* Cycling message */}
                 <div key={loadingMsgIdx} className="loading-msg" style={{
                   background: "#faf8ff", border: "1px solid #ede9ff", borderRadius: "24px",
-                  padding: "10px 22px", fontSize: "14px", fontWeight: "600", color: "#7c3aed",
-                  minWidth: "260px", textAlign: "center",
+                  padding: "10px 24px", fontSize: "13px", fontWeight: "600", color: "#7c3aed",
+                  minWidth: "260px", textAlign: "center", letterSpacing: "-0.1px",
                 }}>
-                  {LOADING_MESSAGES[loadingMsgIdx].text}
+                  {LOADING_MESSAGES[loadingMsgIdx]}
                 </div>
                 <p style={{ color: "#bbb", fontSize: "12px" }}>This takes about 20–30 seconds</p>
               </div>
@@ -1205,7 +1213,7 @@ export default function App() {
             <div style={{ display: "flex", justifyContent: "center", gap: "12px", marginTop: "8px" }}>
               <button className="btn-ghost" onClick={() => setStep(2)}>← Back</button>
               <button className="btn-primary" onClick={handleGenerate} disabled={loading} style={{ padding: "12px 32px", fontSize: "14px" }}>
-                {loading ? "Generating..." : "✦ Generate My Resume"}
+                {loading ? "Generating..." : "Generate My Resume"}
               </button>
             </div>
           </div>
