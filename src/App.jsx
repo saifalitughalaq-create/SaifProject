@@ -666,9 +666,11 @@ export default function App() {
           pdf.setFontSize(10);
           pdf.setTextColor(50, 50, 50);
           for (const b of job.bullets || []) {
-            const bLines = pdf.splitTextToSize("\u2022  " + b, cW - 4);
+            const textIndent = 5; // mm — hanging indent after bullet
+            const bLines = pdf.splitTextToSize(b, cW - textIndent - 2);
             newPage(bLines.length * 4.8 + 1);
-            pdf.text(bLines, mL + 2, y);
+            pdf.text("\u2022", mL + 2, y);
+            pdf.text(bLines, mL + 2 + textIndent, y);
             y += bLines.length * 4.8 + 1.5;
           }
           y += 4;
@@ -697,9 +699,11 @@ export default function App() {
             pdf.setFontSize(10);
             pdf.setTextColor(50, 50, 50);
             for (const b of edu.bullets) {
-              const bLines = pdf.splitTextToSize("\u2022  " + b, cW - 4);
+              const textIndent = 5;
+              const bLines = pdf.splitTextToSize(b, cW - textIndent - 2);
               newPage(bLines.length * 4.8 + 1);
-              pdf.text(bLines, mL + 2, y);
+              pdf.text("\u2022", mL + 2, y);
+              pdf.text(bLines, mL + 2 + textIndent, y);
               y += bLines.length * 4.8 + 1.5;
             }
           }

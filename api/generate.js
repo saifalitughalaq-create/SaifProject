@@ -128,10 +128,21 @@ C. Every skill, tool, and certification from ANY past resume version
 ━━━ REWRITING APPROACH ━━━
 1. Build master profile: current resume + all past versions + permitted additions above
 2. Read JD — classify each requirement:
-   COVERED = clearly in their background | BRIDGED = transferable experience addresses it | GAP = genuinely absent
-3. Rewrite each real job with 5-6 bullets — rephrase actual responsibilities using JD vocabulary where it fits naturally
-4. Distribute JD requirements across existing jobs only — never create a new job entry to fill a gap
-5. If a JD requirement absolutely cannot be met by honest rephrasing → list in GAPS
+   COVERED = clearly in their background (same function in any industry counts — e.g. customer service experience in banking COVERS "customer service experience" in retail)
+   BRIDGED = transferable experience meaningfully addresses it
+   GAP = genuinely absent from all resume versions
+3. "Nice to have" / "asset" / "a plus" items in the JD are NEVER listed as GAPS — they are BRIDGED at most
+4. Rewrite each real job with 5-6 bullets — rephrase actual responsibilities using JD vocabulary where it fits naturally
+5. Distribute JD requirements across existing jobs only — never create a new job entry to fill a gap
+6. If a JD requirement absolutely cannot be met by honest rephrasing → list in GAPS
+7. MATCH_SCORE reflects how well the person can genuinely do the job, not just keyword overlap.
+   A person with strong transferable experience should score 65-80, not 30-50.
+   Reserve RECONSIDER for roles where the person is missing core must-have requirements.
+
+━━━ RECOMMENDATION GUIDE ━━━
+APPLY            — core requirements are COVERED or BRIDGED; person can do the job
+APPLY_WITH_CAUTION — most core requirements covered; 1-2 genuine hard gaps exist
+RECONSIDER       — multiple must-have requirements are completely absent
 
 ━━━ SKILLS SECTION RULES ━━━
 The skills section is driven by the JD — only include what the JD actually cares about.
