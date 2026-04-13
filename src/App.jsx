@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import mammoth from "mammoth";
-import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
+import { signInWithPopup, signOut, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc, increment } from "firebase/firestore";
 import { auth, db, googleProvider, isFirebaseReady } from "./firebase";
 import LandingPage from "./LandingPage";
@@ -382,7 +382,7 @@ async function incFirestoreCount(uid) {
   return totalGens;
 }
 
-async function saveResumeToHistory(uid, text) {
+async function saveResumeToHistory(uid, text, generated = null) {
   const snap = await getDoc(doc(db, "users", uid));
   const data = snap.exists() ? snap.data() : {};
   const existing = data.resumes || [];
@@ -390,9 +390,18 @@ async function saveResumeToHistory(uid, text) {
 
   // Check similarity — same if first 300 chars match (catches minor whitespace diffs)
   const isSame = existing.length > 0 && existing[0].text.slice(0, 300) === trimmed.slice(0, 300);
-  if (isSame) return { saved: false, resumeCount: data.resumeCount || existing.length };
+  if (isSame) {
+    // Still update the last generated output on the existing entry
+    if (generated && existing.length > 0) {
+      existing[0].generated = generated;
+      existing[0].lastGeneratedAt = Date.now();
+      await setDoc(doc(db, "users", uid), { resumes: existing }, { merge: true });
+    }
+    return { saved: false, resumeCount: data.resumeCount || existing.length };
+  }
 
-  const updated = [{ text: trimmed, savedAt: Date.now() }, ...existing].slice(0, 5);
+  const entry = { text: trimmed, savedAt: Date.now(), ...(generated ? { generated } : {}) };
+  const updated = [entry, ...existing].slice(0, 5);
   const resumeCount = (data.resumeCount || 0) + 1;
   await setDoc(doc(db, "users", uid), { resumes: updated, resumeCount }, { merge: true });
   return { saved: true, resumeCount };
@@ -551,16 +560,19 @@ export default function App() {
   useEffect(() => {
     if (!isFirebaseReady) { setAuthLoading(false); return; }
     return onAuthStateChanged(auth, async (u) => {
-      setUser(u);
-      if (u) {
-        const c = await getFirestoreCount(u.uid);
-        setGenCount(c);
-        const snap = await getDoc(doc(db, "users", u.uid));
-        setSavedResumeCount(snap.exists() ? (snap.data().resumes?.length || 0) : 0);
-      } else {
-        setGenCount(getLocalCount());
-        setSavedResumeCount(0);
+      if (!u) {
+        // Auto-create anonymous session so resumes are always saved to Firestore
+        try { await signInAnonymously(auth); } catch {
+          // Firebase unavailable — fall back to local-only mode
+          setAuthLoading(false);
+        }
+        return; // onAuthStateChanged will fire again with the anonymous user
       }
+      setUser(u);
+      const c = await getFirestoreCount(u.uid);
+      setGenCount(c);
+      const snap = await getDoc(doc(db, "users", u.uid));
+      setSavedResumeCount(snap.exists() ? (snap.data().resumes?.length || 0) : 0);
       setAuthLoading(false);
     });
   }, []);
@@ -573,7 +585,8 @@ export default function App() {
   const handleSignOut = async () => {
     if (!isFirebaseReady) return;
     await signOut(auth);
-    setGenCount(getLocalCount());
+    // onAuthStateChanged fires with null → auto-signs in anonymously → fires again
+    // setSavedResumeCount/setGenCount are updated there; nothing to do here
   };
 
   const handleDownloadPDF = async () => {
@@ -861,19 +874,19 @@ export default function App() {
   };
 
   const handleGenerate = async () => {
-    // Check generation limit
-    const currentCount = user ? await getFirestoreCount(user.uid) : getLocalCount();
-    const limit = user ? AUTH_LIMIT : GUEST_LIMIT;
+    if (!user) return; // anonymous session still loading
+    const isGoogleSignedIn = !user.isAnonymous;
+    const currentCount = await getFirestoreCount(user.uid);
+    const limit = isGoogleSignedIn ? AUTH_LIMIT : GUEST_LIMIT;
     if (currentCount >= limit) { setShowPaywall(true); return; }
 
     setLoading(true);
     setError(null);
     try {
-      // Load past resumes for signed-in users to improve tailoring
+      // Load past resumes from any version to improve tailoring (all users)
       let pastResumes = [];
-      if (user && isFirebaseReady) {
+      if (isFirebaseReady) {
         const history = await getPastResumes(user.uid);
-        // Exclude current resume if already in history; pass previous ones
         pastResumes = history
           .filter(r => r.text !== resumeText.slice(0, 4000))
           .slice(0, 3)
@@ -882,24 +895,21 @@ export default function App() {
 
       const result = await generateResume(resumeText, jobDesc, pastResumes);
 
-      // Save resume to history and update count
-      if (user) {
-        const [, saveResult] = await Promise.all([
-          incFirestoreCount(user.uid),
-          saveResumeToHistory(user.uid, resumeText),
-        ]);
-        setGenCount(currentCount + 1);
-        setSavedToast(saveResult || { saved: false, resumeCount: 1 });
-        if (saveResult?.saved) setSavedResumeCount(c => c + 1);
-        setTimeout(() => setSavedToast(null), 4000);
-      } else {
-        incLocalCount();
-        setGenCount(currentCount + 1);
-        // Show memory promo to guests after first generation (once only)
-        if (!localStorage.getItem("rt_memory_seen")) {
-          setTimeout(() => setShowMemoryPromo(true), 1500);
-        }
+      // Save resume + generated output to Firestore for ALL users (anonymous & Google)
+      const [, saveResult] = await Promise.all([
+        incFirestoreCount(user.uid),
+        saveResumeToHistory(user.uid, resumeText, result),
+      ]);
+      setGenCount(currentCount + 1);
+      setSavedToast(saveResult || { saved: false, resumeCount: 1 });
+      if (saveResult?.saved) setSavedResumeCount(c => c + 1);
+      setTimeout(() => setSavedToast(null), 4000);
+
+      // Show sign-in promo for anonymous users after first generation (once only)
+      if (!isGoogleSignedIn && !localStorage.getItem("rt_memory_seen")) {
+        setTimeout(() => setShowMemoryPromo(true), 1500);
       }
+
       setGenerated(result);
       setStep(4);
     } catch (err) {
@@ -913,6 +923,8 @@ export default function App() {
     if (step === 1) return jobDesc.trim().length > 50;
     return true;
   };
+
+  const isGoogleUser = user && !user.isAnonymous;
 
   const DARK = { bg: "#0d0d14", surface: "#15121f", surface2: "#1e1a2e", border: "#2a2240", text: "#ede9f4", muted: "#8880a0" };
   const LIGHT = { bg: "#ffffff", surface: "#fafafa", surface2: "#faf8ff", border: "#ebebeb", text: "#0f0f0f", muted: "#666" };
@@ -1058,18 +1070,18 @@ export default function App() {
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
               </div>
             <h2 style={{ fontSize: "20px", fontWeight: "700", marginBottom: "8px" }}>
-              {user ? `Daily limit reached` : `You've used today's ${GUEST_LIMIT} free generations`}
+              {isGoogleUser ? `Daily limit reached` : `You've used today's ${GUEST_LIMIT} free tailors`}
             </h2>
             <p style={{ color: ui.muted, fontSize: "13px", lineHeight: "1.6", marginBottom: "8px" }}>
-              {user
-                ? `You've used all ${AUTH_LIMIT} generations for today. Come back tomorrow for ${AUTH_LIMIT} more free, or upgrade to Pro for unlimited.`
-                : `Sign in with Google to get ${AUTH_LIMIT} more free generations today. Limits reset daily.`}
+              {isGoogleUser
+                ? `You've used all ${AUTH_LIMIT} tailors for today. Come back tomorrow for ${AUTH_LIMIT} more free.`
+                : `Sign in with Google to get ${AUTH_LIMIT} more free tailors today. Limits reset daily.`}
             </p>
             <div style={{ display: "inline-block", background: "#f4f4f4", borderRadius: "20px", padding: "4px 14px", fontSize: "12px", color: "#666", marginBottom: "20px" }}>
               Resets in <strong style={{ color: "#1a1a1a" }}>{resetCountdown}</strong>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              {!user && isFirebaseReady && (
+              {!isGoogleUser && isFirebaseReady && (
                 <button onClick={async () => { await handleGoogleSignIn(); setShowPaywall(false); }}
                   style={{ background: "#fff", border: "1px solid #d0d0d0", borderRadius: "8px", padding: "11px 20px", fontSize: "13px", cursor: "pointer", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
                   <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2a10.3 10.3 0 0 0-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92a8.78 8.78 0 0 0 2.68-6.62z"/><path fill="#34A853" d="M9 18a8.6 8.6 0 0 0 5.96-2.18l-2.91-2.26a5.4 5.4 0 0 1-8.07-2.85H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.98 10.71a5.41 5.41 0 0 1 0-3.42V4.96H.96a9 9 0 0 0 0 8.08l3.02-2.33z"/><path fill="#EA4335" d="M9 3.58a4.86 4.86 0 0 1 3.44 1.35l2.58-2.58A8.64 8.64 0 0 0 9 0 9 9 0 0 0 .96 4.96l3.02 2.33A5.36 5.36 0 0 1 9 3.58z"/></svg>
@@ -1099,10 +1111,10 @@ export default function App() {
             <h2 style={{ fontSize: "20px", fontWeight: "700", marginBottom: "10px", letterSpacing: "-0.3px" }}>
               Your resume gets smarter over time
             </h2>
-            <p style={{ color: "#555", fontSize: "13px", lineHeight: "1.7", marginBottom: "8px" }}>
-              Sign in with Google and the AI remembers every resume you upload.
+            <p style={{ color: ui.muted, fontSize: "13px", lineHeight: "1.7", marginBottom: "8px" }}>
+              Your resumes are already being saved — sign in with Google to keep them permanently and unlock 5 more free tailors per day.
             </p>
-            <p style={{ color: "#555", fontSize: "13px", lineHeight: "1.7", marginBottom: "28px" }}>
+            <p style={{ color: ui.muted, fontSize: "13px", lineHeight: "1.7", marginBottom: "28px" }}>
               The more you use it, the better it knows your background — pulling skills and experience from past versions to build a stronger resume each time.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -1152,7 +1164,7 @@ export default function App() {
         <div className="header-inner" style={{ maxWidth: "760px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: "58px" }}>
           <div
             style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}
-            onClick={() => { setShowLanding(true); setStep(0); setGenerated(null); setResumeText(""); setJobDesc(""); }}
+            onClick={() => { setGenerated(null); setResumeText(""); setJobDesc(""); setStep(0); }}
           >
             <span style={{ fontWeight: "900", fontSize: "17px", letterSpacing: "-0.5px", color: ui.text }}>ResumeJD</span>
             <span style={{ background: "#f0eaff", color: "#7c3aed", fontSize: "10px", fontWeight: "700", padding: "2px 7px", borderRadius: "20px" }}>FREE</span>
@@ -1180,7 +1192,7 @@ export default function App() {
             )}
             {/* Gen counter */}
             {!authLoading && (() => {
-              const limit = user ? AUTH_LIMIT : GUEST_LIMIT;
+              const limit = isGoogleUser ? AUTH_LIMIT : GUEST_LIMIT;
               return (
                 <span className="gen-counter" style={{ fontSize: "11px", color: genCount >= limit ? "#dc2626" : "#7c3aed", background: genCount >= limit ? "#fee2e2" : "#f0eaff", padding: "3px 8px", borderRadius: "20px", fontWeight: "600" }}>
                   {genCount}/{limit} free{genCount >= limit ? ` · resets in ${resetCountdown}` : ""}
@@ -1197,7 +1209,7 @@ export default function App() {
             </button>
             {/* Auth */}
             {isFirebaseReady && !authLoading && (
-              user ? (
+              isGoogleUser ? (
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   {user.photoURL && <img src={user.photoURL} alt="" style={{ width: "28px", height: "28px", borderRadius: "50%", border: `1px solid ${ui.border}` }} />}
                   <button onClick={handleSignOut} className="btn-ghost" style={{ padding: "5px 12px", fontSize: "12px" }}>Sign out</button>
@@ -1238,41 +1250,29 @@ export default function App() {
               ))}
             </div>
 
-            {/* Memory Status */}
-            {!authLoading && (
-              user ? (
-                <div className="memory-card" style={{ background: savedResumeCount > 0 ? (darkMode ? ui.surface2 : "#faf8ff") : ui.surface, border: `1px solid ${ui.border}`, borderRadius: "12px", padding: "16px 18px", marginBottom: "24px", display: "flex", alignItems: "flex-start", gap: "14px" }}>
-                  <div style={{ width: "36px", height: "36px", background: savedResumeCount > 0 ? (darkMode ? "#2a2240" : "#ede9ff") : (darkMode ? "#1e1a2e" : "#f0f0f0"), borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={savedResumeCount > 0 ? "#7c3aed" : "#aaa"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: "13px", fontWeight: "700", color: savedResumeCount > 0 ? "#7c3aed" : ui.muted, marginBottom: "3px" }}>
-                      {savedResumeCount > 0 ? `Memory active — ${savedResumeCount} resume${savedResumeCount > 1 ? "s" : ""} stored` : "Memory ready"}
-                    </div>
-                    <div style={{ fontSize: "12px", color: ui.muted, lineHeight: "1.55" }}>
-                      {savedResumeCount > 0
-                        ? "AI will draw on all your past versions to build the strongest possible match for this role."
-                        : "Upload your first resume and the AI will remember your background for every future application."}
-                    </div>
-                  </div>
+            {/* Memory Status — shown for all users (anonymous + Google) */}
+            {!authLoading && user && (
+              <div className="memory-card" style={{ background: savedResumeCount > 0 ? (darkMode ? ui.surface2 : "#faf8ff") : ui.surface, border: `1px solid ${ui.border}`, borderRadius: "12px", padding: "16px 18px", marginBottom: "24px", display: "flex", alignItems: "flex-start", gap: "14px" }}>
+                <div style={{ width: "36px", height: "36px", background: savedResumeCount > 0 ? (darkMode ? "#2a2240" : "#ede9ff") : (darkMode ? "#1e1a2e" : "#f0f0f0"), borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={savedResumeCount > 0 ? "#7c3aed" : "#aaa"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
                 </div>
-              ) : isFirebaseReady ? (
-                <div style={{ background: ui.surface, border: `1px solid ${ui.border}`, borderRadius: "12px", padding: "16px 18px", marginBottom: "24px", display: "flex", alignItems: "flex-start", gap: "14px" }}>
-                  <div style={{ width: "36px", height: "36px", background: darkMode ? "#1e1a2e" : "#f0f0f0", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: "13px", fontWeight: "700", color: savedResumeCount > 0 ? "#7c3aed" : ui.muted, marginBottom: "3px" }}>
+                    {savedResumeCount > 0 ? `Memory active — ${savedResumeCount} resume${savedResumeCount > 1 ? "s" : ""} stored` : "Memory ready"}
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: "13px", fontWeight: "700", color: ui.text, marginBottom: "3px" }}>Sign in to unlock AI Memory</div>
-                    <div style={{ fontSize: "12px", color: ui.muted, lineHeight: "1.55", marginBottom: "10px" }}>
-                      The AI remembers every resume you upload — getting sharper with each application. Your 5 daily tailors become 10.
-                    </div>
+                  <div style={{ fontSize: "12px", color: ui.muted, lineHeight: "1.55", marginBottom: !isGoogleUser ? "10px" : "0" }}>
+                    {savedResumeCount > 0
+                      ? "AI draws on all your past versions to build the strongest match for each role."
+                      : "Generate your first resume and it will be saved to memory automatically."}
+                  </div>
+                  {!isGoogleUser && isFirebaseReady && (
                     <button onClick={handleGoogleSignIn} style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: ui.bg, border: `1px solid ${ui.border}`, borderRadius: "7px", padding: "7px 14px", fontSize: "12px", cursor: "pointer", fontWeight: "600", fontFamily: "inherit", color: ui.text }}>
                       <svg width="14" height="14" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2a10.3 10.3 0 0 0-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92a8.78 8.78 0 0 0 2.68-6.62z"/><path fill="#34A853" d="M9 18a8.6 8.6 0 0 0 5.96-2.18l-2.91-2.26a5.4 5.4 0 0 1-8.07-2.85H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.98 10.71a5.41 5.41 0 0 1 0-3.42V4.96H.96a9 9 0 0 0 0 8.08l3.02-2.33z"/><path fill="#EA4335" d="M9 3.58a4.86 4.86 0 0 1 3.44 1.35l2.58-2.58A8.64 8.64 0 0 0 9 0 9 9 0 0 0 .96 4.96l3.02 2.33A5.36 5.36 0 0 1 9 3.58z"/></svg>
-                      Continue with Google — it's free
+                      Sign in with Google — unlock 5 more tailors + keep memory permanently
                     </button>
-                  </div>
+                  )}
                 </div>
-              ) : null
+              </div>
             )}
 
             <h2 style={{ fontSize: "14px", fontWeight: "700", marginBottom: "6px", color: ui.text }}>Upload Your Resume</h2>
@@ -1562,8 +1562,8 @@ export default function App() {
             </div>
 
             <div style={{ display: "flex", justifyContent: "center", marginTop: "28px" }}>
-              <button className="btn-ghost" onClick={() => { setGenerated(null); setJobDesc(""); setStep(1); }}>
-                Try a New Job
+              <button className="btn-ghost" onClick={() => { setGenerated(null); setResumeText(""); setJobDesc(""); setStep(0); }}>
+                Start Over
               </button>
             </div>
           </div>
