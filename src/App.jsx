@@ -499,6 +499,19 @@ export default function App() {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [docxLoading, setDocxLoading] = useState(false);
   const [showMemoryPromo, setShowMemoryPromo] = useState(false);
+  const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
+
+  const LOADING_MESSAGES = [
+    { emoji: "✨", text: "Crafting your masterpiece..." },
+    { emoji: "🔍", text: "Reading the job description..." },
+    { emoji: "🧠", text: "Analyzing your experience..." },
+    { emoji: "🎯", text: "Matching keywords to the role..." },
+    { emoji: "✍️", text: "Rewriting every bullet point..." },
+    { emoji: "🚀", text: "Work in progress..." },
+    { emoji: "⚙️", text: "Optimizing for ATS filters..." },
+    { emoji: "💎", text: "Polishing the final draft..." },
+    { emoji: "🏆", text: "Almost there — making it perfect..." },
+  ];
   const [savedToast, setSavedToast] = useState(null); // { count: N }
   const [resetCountdown, setResetCountdown] = useState(getResetCountdown());
   const fileRef = useRef();
@@ -508,6 +521,14 @@ export default function App() {
     const id = setInterval(() => setResetCountdown(getResetCountdown()), 60000);
     return () => clearInterval(id);
   }, []);
+
+  // Cycle loading messages while generating
+  useEffect(() => {
+    if (!loading) { setLoadingMsgIdx(0); return; }
+    setLoadingMsgIdx(0);
+    const id = setInterval(() => setLoadingMsgIdx(i => (i + 1) % LOADING_MESSAGES.length), 2800);
+    return () => clearInterval(id);
+  }, [loading]);
 
   // Auth listener
   useEffect(() => {
@@ -778,52 +799,64 @@ export default function App() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f4f5f7", fontFamily: "'Helvetica Neue', Helvetica, sans-serif", color: "#1a1a1a" }}>
+    <div style={{ minHeight: "100vh", background: "#fff", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", color: "#0f0f0f" }}>
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: #eee; }
-        ::-webkit-scrollbar-thumb { background: #ccc; }
+        ::-webkit-scrollbar-track { background: #f4f4f4; }
+        ::-webkit-scrollbar-thumb { background: #d0d0d0; border-radius: 4px; }
         @keyframes slideUp {
           from { opacity: 0; transform: translateX(-50%) translateY(16px); }
           to   { opacity: 1; transform: translateX(-50%) translateY(0); }
         }
         .btn-primary {
-          background: #1a1a1a; color: #fff; border: none;
-          padding: 11px 28px; border-radius: 6px; font-size: 13px;
-          font-weight: 600; cursor: pointer; letter-spacing: 0.3px;
-          transition: opacity 0.15s;
+          background: #7c3aed; color: #fff; border: none;
+          padding: 11px 28px; border-radius: 8px; font-size: 13px;
+          font-weight: 700; cursor: pointer; letter-spacing: -0.1px;
+          transition: background 0.15s, transform 0.1s;
+          font-family: inherit;
         }
-        .btn-primary:hover:not(:disabled) { opacity: 0.8; }
-        .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+        .btn-primary:hover:not(:disabled) { background: #6d28d9; transform: translateY(-1px); }
+        .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
         .btn-ghost {
-          background: transparent; color: #555; border: 1px solid #d0d0d0;
-          padding: 10px 22px; border-radius: 6px; font-size: 13px;
+          background: transparent; color: #444; border: 1px solid #e0e0e0;
+          padding: 10px 22px; border-radius: 8px; font-size: 13px;
           cursor: pointer; transition: border-color 0.15s, color 0.15s;
+          font-family: inherit; font-weight: 600;
         }
-        .btn-ghost:hover { border-color: #888; color: #1a1a1a; }
+        .btn-ghost:hover { border-color: #7c3aed; color: #7c3aed; }
         .theme-card {
-          border: 1.5px solid #e0e0e0; border-radius: 10px;
-          padding: 14px; cursor: pointer; transition: border-color 0.15s;
+          border: 1.5px solid #ebebeb; border-radius: 12px;
+          padding: 14px; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s;
           background: #fff;
         }
-        .theme-card:hover { border-color: #888; }
-        .theme-card.selected { border-color: #1a1a1a; }
+        .theme-card:hover { border-color: #c4b5fd; box-shadow: 0 4px 16px rgba(124,58,237,0.08); }
+        .theme-card.selected { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.12); }
         textarea, input[type="password"], input[type="text"] {
-          width: 100%; background: #fff; border: 1px solid #d8d8d8;
-          color: #1a1a1a; padding: 14px; border-radius: 6px;
+          width: 100%; background: #fff; border: 1.5px solid #e8e8e8;
+          color: #0f0f0f; padding: 14px; border-radius: 8px;
           font-size: 13px; line-height: 1.7; outline: none;
-          font-family: inherit; transition: border-color 0.15s;
+          font-family: inherit; transition: border-color 0.15s, box-shadow 0.15s;
         }
-        textarea:focus, input[type="password"]:focus, input[type="text"]:focus { border-color: #888; }
+        textarea:focus, input[type="password"]:focus, input[type="text"]:focus {
+          border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.1);
+        }
         .spinner {
-          width: 32px; height: 32px; border: 2.5px solid #e0e0e0;
-          border-top-color: #1a1a1a; border-radius: 50%;
-          animation: spin 0.8s linear infinite; margin: 0 auto;
+          width: 40px; height: 40px; border: 3px solid #ede9ff;
+          border-top-color: #7c3aed; border-radius: 50%;
+          animation: spin 0.75s linear infinite; margin: 0 auto;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
         .fade-in { animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes msgFade {
+          0% { opacity: 0; transform: translateY(6px); }
+          15% { opacity: 1; transform: translateY(0); }
+          80% { opacity: 1; transform: translateY(0); }
+          100% { opacity: 0; transform: translateY(-6px); }
+        }
+        .loading-msg { animation: msgFade 2.8s ease forwards; }
         @media print {
           body > * { display: none !important; }
           #resume-output {
@@ -882,7 +915,7 @@ export default function App() {
                   Continue free with Google
                 </button>
               )}
-              <button style={{ background: "#1a1a1a", color: "#fff", border: "none", borderRadius: "8px", padding: "12px 20px", fontSize: "13px", cursor: "pointer", fontWeight: "600" }}
+              <button style={{ background: "#7c3aed", color: "#fff", border: "none", borderRadius: "8px", padding: "12px 20px", fontSize: "13px", cursor: "pointer", fontWeight: "700" }}
                 onClick={() => setShowPaywall(false)}>
                 Upgrade to Pro — Coming Soon
               </button>
@@ -950,13 +983,14 @@ export default function App() {
       )}
 
       {/* Header */}
-      <div style={{ borderBottom: "1px solid #e4e4e4", background: "#fff", padding: "0 16px" }}>
-        <div className="header-inner" style={{ maxWidth: "760px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: "56px" }}>
+      <div style={{ borderBottom: "1px solid #f0f0f0", background: "#fff", padding: "0 16px", position: "sticky", top: 0, zIndex: 100 }}>
+        <div className="header-inner" style={{ maxWidth: "760px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: "58px" }}>
           <div
-            style={{ display: "flex", alignItems: "baseline", gap: "8px", cursor: "pointer" }}
+            style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}
             onClick={() => { setShowLanding(true); setStep(0); setGenerated(null); setResumeText(""); setJobDesc(""); }}
           >
-            <span style={{ fontWeight: "800", fontSize: "17px", letterSpacing: "-0.5px" }}>ResumeJD</span>
+            <span style={{ fontWeight: "900", fontSize: "17px", letterSpacing: "-0.5px", color: "#0f0f0f" }}>ResumeJD</span>
+            <span style={{ background: "#f0eaff", color: "#7c3aed", fontSize: "10px", fontWeight: "700", padding: "2px 7px", borderRadius: "20px" }}>FREE</span>
             <span className="header-tagline" style={{ fontSize: "11px", color: "#999", letterSpacing: "0.1px" }}>AI resume tailored to your job description</span>
           </div>
           <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -966,14 +1000,14 @@ export default function App() {
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                     <div style={{
                       width: "24px", height: "24px", borderRadius: "50%", display: "flex",
-                      alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: "600",
-                      background: i < step ? "#1a1a1a" : i === step ? "#1a1a1a" : "#e8e8e8",
-                      color: i <= step ? "#fff" : "#999",
+                      alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: "700",
+                      background: i < step ? "#7c3aed" : i === step ? "#7c3aed" : "#f0f0f0",
+                      color: i <= step ? "#fff" : "#aaa",
                     }}>
                       {i < step ? "✓" : i + 1}
                     </div>
                     {i < STEPS.length - 1 && (
-                      <div style={{ width: "20px", height: "1px", background: i < step ? "#1a1a1a" : "#e0e0e0" }} />
+                      <div style={{ width: "20px", height: "1px", background: i < step ? "#7c3aed" : "#e8e8e8" }} />
                     )}
                   </div>
                 ))}
@@ -983,7 +1017,7 @@ export default function App() {
             {!authLoading && (() => {
               const limit = user ? AUTH_LIMIT : GUEST_LIMIT;
               return (
-                <span className="gen-counter" style={{ fontSize: "11px", color: genCount >= limit ? "#dc2626" : "#888", background: "#f4f4f4", padding: "3px 8px", borderRadius: "20px" }}>
+                <span className="gen-counter" style={{ fontSize: "11px", color: genCount >= limit ? "#dc2626" : "#7c3aed", background: genCount >= limit ? "#fee2e2" : "#f0eaff", padding: "3px 8px", borderRadius: "20px", fontWeight: "600" }}>
                   {genCount}/{limit} free{genCount >= limit ? ` · resets in ${resetCountdown}` : ""}
                 </span>
               );
@@ -1007,32 +1041,32 @@ export default function App() {
       </div>
 
       {/* Main */}
-      <div className="main-container" style={{ maxWidth: step === 4 ? "860px" : "640px", margin: "0 auto", padding: "40px 24px 80px" }}>
+      <div className="main-container" style={{ maxWidth: step === 4 ? "860px" : "640px", margin: "0 auto", padding: "40px 24px 80px", background: "#fff" }}>
 
 
         {/* STEP 0: Upload Resume */}
         {step === 0 && (
           <div className="fade-in">
-            <h1 style={{ fontSize: "26px", fontWeight: "800", marginBottom: "6px", letterSpacing: "-0.5px" }}>AI Resume Tailored to Any Job</h1>
-            <p style={{ color: "#666", fontSize: "14px", marginBottom: "32px" }}>Paste your resume and a job description. The AI rewrites your resume from scratch to match the role — honest, no fabrication.</p>
+            <h1 style={{ fontSize: "28px", fontWeight: "900", marginBottom: "6px", letterSpacing: "-0.8px", color: "#0f0f0f" }}>Tailor your resume to any job</h1>
+            <p style={{ color: "#666", fontSize: "14px", marginBottom: "28px", lineHeight: "1.6" }}>Paste your resume and a job description. AI rewrites every bullet using the role's exact keywords — honest, no fabrication.</p>
 
             {/* Feature highlights */}
-            <div className="feature-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginBottom: "32px" }}>
+            <div className="feature-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: "28px" }}>
               {[
-                { icon: "🎯", title: "Tailored to the JD", desc: "Every bullet rewritten using the job's exact keywords and requirements." },
-                { icon: "🧠", title: "Remembers Your Background", desc: "Sign in and the AI learns from every resume you upload — getting sharper each time." },
-                { icon: "✅", title: "Honest Fit Score", desc: "Get a match score and clear breakdown of what you cover, bridge, or miss." },
+                { icon: "🎯", title: "Tailored to the JD", desc: "Every bullet rewritten using the job's exact keywords." },
+                { icon: "🧠", title: "Remembers You", desc: "Sign in and the AI builds on every resume you upload." },
+                { icon: "✅", title: "Honest Fit Score", desc: "See exactly what you cover, bridge, or miss." },
               ].map(({ icon, title, desc }) => (
-                <div key={title} style={{ background: "#fff", border: "1px solid #e8e8e8", borderRadius: "10px", padding: "18px 16px" }}>
-                  <div style={{ fontSize: "22px", marginBottom: "8px" }}>{icon}</div>
-                  <div style={{ fontSize: "13px", fontWeight: "700", marginBottom: "5px", color: "#1a1a1a" }}>{title}</div>
-                  <div style={{ fontSize: "12px", color: "#777", lineHeight: "1.6" }}>{desc}</div>
+                <div key={title} style={{ background: "#faf8ff", border: "1px solid #ede9ff", borderRadius: "10px", padding: "16px 14px" }}>
+                  <div style={{ fontSize: "20px", marginBottom: "8px" }}>{icon}</div>
+                  <div style={{ fontSize: "12px", fontWeight: "700", marginBottom: "4px", color: "#0f0f0f" }}>{title}</div>
+                  <div style={{ fontSize: "11px", color: "#888", lineHeight: "1.6" }}>{desc}</div>
                 </div>
               ))}
             </div>
 
-            <h2 style={{ fontSize: "15px", fontWeight: "700", marginBottom: "6px" }}>Upload Your Resume</h2>
-            <p style={{ color: "#666", fontSize: "13px", marginBottom: "16px" }}>Upload a file or paste your resume below to get started.</p>
+            <h2 style={{ fontSize: "14px", fontWeight: "700", marginBottom: "6px", color: "#0f0f0f" }}>Upload Your Resume</h2>
+            <p style={{ color: "#777", fontSize: "13px", marginBottom: "14px" }}>Upload a file or paste your resume below.</p>
 
             <div
               onDrop={handleDrop}
@@ -1040,10 +1074,10 @@ export default function App() {
               onDragLeave={() => setDragOver(false)}
               onClick={() => fileRef.current.click()}
               style={{
-                border: `1.5px dashed ${dragOver ? "#555" : "#d0d0d0"}`,
-                borderRadius: "8px", padding: "32px", textAlign: "center",
-                cursor: "pointer", background: dragOver ? "#f8f8f8" : "#fff",
-                transition: "all 0.15s", marginBottom: "20px",
+                border: `1.5px dashed ${dragOver ? "#7c3aed" : "#ddd6fe"}`,
+                borderRadius: "10px", padding: "32px", textAlign: "center",
+                cursor: "pointer", background: dragOver ? "#faf8ff" : "#fdfcff",
+                transition: "all 0.15s", marginBottom: "18px",
               }}
             >
               <div style={{ fontSize: "28px", marginBottom: "10px" }}>📄</div>
@@ -1068,8 +1102,8 @@ export default function App() {
         {/* STEP 1: Job Description */}
         {step === 1 && (
           <div className="fade-in">
-            <h1 style={{ fontSize: "22px", fontWeight: "700", marginBottom: "6px" }}>Job Description</h1>
-            <p style={{ color: "#666", fontSize: "14px", marginBottom: "28px" }}>Paste the full posting — responsibilities, qualifications, requirements.</p>
+            <h1 style={{ fontSize: "24px", fontWeight: "900", marginBottom: "6px", letterSpacing: "-0.5px" }}>Job Description</h1>
+            <p style={{ color: "#666", fontSize: "14px", marginBottom: "24px" }}>Paste the full posting — responsibilities, qualifications, requirements.</p>
 
             <textarea rows={18} value={jobDesc} onChange={(e) => setJobDesc(e.target.value.slice(0, 6000))} placeholder="Paste the full job description here..." />
             <div style={{ textAlign: "right", fontSize: "11px", color: jobDesc.length >= 6000 ? "#dc2626" : "#aaa", marginTop: "6px" }}>
@@ -1086,8 +1120,8 @@ export default function App() {
         {/* STEP 2: Choose Theme */}
         {step === 2 && (
           <div className="fade-in">
-            <h1 style={{ fontSize: "22px", fontWeight: "700", marginBottom: "6px" }}>Choose a Theme</h1>
-            <p style={{ color: "#666", fontSize: "14px", marginBottom: "24px" }}>Pick the style your resume should use.</p>
+            <h1 style={{ fontSize: "24px", fontWeight: "900", marginBottom: "6px", letterSpacing: "-0.5px" }}>Choose a Theme</h1>
+            <p style={{ color: "#666", fontSize: "14px", marginBottom: "22px" }}>Pick the style your resume should use.</p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "12px", marginBottom: "28px" }}>
               {THEMES.map((theme) => (
                 <div
@@ -1107,7 +1141,7 @@ export default function App() {
                   <div style={{ fontWeight: "600", fontSize: "13px", marginBottom: "3px" }}>{theme.name}</div>
                   <div style={{ fontSize: "11px", color: "#888", lineHeight: "1.4" }}>{theme.desc}</div>
                   {selectedTheme.id === theme.id && (
-                    <div style={{ marginTop: "8px", fontSize: "11px", color: "#1a1a1a", fontWeight: "600" }}>✓ Selected</div>
+                    <div style={{ marginTop: "8px", fontSize: "11px", color: "#7c3aed", fontWeight: "700" }}>✓ Selected</div>
                   )}
                 </div>
               ))}
@@ -1123,7 +1157,7 @@ export default function App() {
         {/* STEP 3: Generate */}
         {step === 3 && (
           <div className="fade-in" style={{ textAlign: "center", padding: "32px 0" }}>
-            <h1 style={{ fontSize: "22px", fontWeight: "700", marginBottom: "8px" }}>Ready to Generate</h1>
+            <h1 style={{ fontSize: "26px", fontWeight: "900", marginBottom: "8px", letterSpacing: "-0.5px" }}>Ready to Generate</h1>
             <p style={{ color: "#666", fontSize: "14px", maxWidth: "380px", margin: "0 auto 24px", lineHeight: "1.6" }}>
               AI will rewrite your resume using the job description's exact keywords and language.
             </p>
@@ -1134,17 +1168,31 @@ export default function App() {
                 { label: "Resume", value: `${resumeText.trim().split(/\s+/).length} words` },
                 { label: "Job Description", value: `${jobDesc.trim().split(/\s+/).length} words` },
               ].map((item, i) => (
-                <div key={i} style={{ background: "#fff", border: "1px solid #e0e0e0", borderRadius: "8px", padding: "12px 20px", minWidth: "120px" }}>
-                  <div style={{ fontSize: "16px", fontWeight: "700" }}>{item.value}</div>
-                  <div style={{ fontSize: "11px", color: "#888", marginTop: "3px", textTransform: "uppercase", letterSpacing: "0.5px" }}>{item.label}</div>
+                <div key={i} style={{ background: "#faf8ff", border: "1px solid #ede9ff", borderRadius: "10px", padding: "12px 20px", minWidth: "120px" }}>
+                  <div style={{ fontSize: "16px", fontWeight: "800", color: "#7c3aed" }}>{item.value}</div>
+                  <div style={{ fontSize: "11px", color: "#999", marginTop: "3px", textTransform: "uppercase", letterSpacing: "0.5px" }}>{item.label}</div>
                 </div>
               ))}
             </div>
 
             {loading && (
-              <div style={{ margin: "24px 0" }}>
-                <div className="spinner" />
-                <p style={{ color: "#888", fontSize: "13px", marginTop: "12px" }}>Tailoring your resume...</p>
+              <div style={{ margin: "32px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: "20px" }}>
+                {/* Spinner ring */}
+                <div style={{ position: "relative", width: "64px", height: "64px" }}>
+                  <div className="spinner" style={{ width: "64px", height: "64px", border: "4px solid #ede9ff", borderTopColor: "#7c3aed" }} />
+                  <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px" }}>
+                    {LOADING_MESSAGES[loadingMsgIdx].emoji}
+                  </div>
+                </div>
+                {/* Cycling message */}
+                <div key={loadingMsgIdx} className="loading-msg" style={{
+                  background: "#faf8ff", border: "1px solid #ede9ff", borderRadius: "24px",
+                  padding: "10px 22px", fontSize: "14px", fontWeight: "600", color: "#7c3aed",
+                  minWidth: "260px", textAlign: "center",
+                }}>
+                  {LOADING_MESSAGES[loadingMsgIdx].text}
+                </div>
+                <p style={{ color: "#bbb", fontSize: "12px" }}>This takes about 20–30 seconds</p>
               </div>
             )}
 
@@ -1156,8 +1204,8 @@ export default function App() {
 
             <div style={{ display: "flex", justifyContent: "center", gap: "12px", marginTop: "8px" }}>
               <button className="btn-ghost" onClick={() => setStep(2)}>← Back</button>
-              <button className="btn-primary" onClick={handleGenerate} disabled={loading}>
-                {loading ? "Generating..." : "Generate Resume"}
+              <button className="btn-primary" onClick={handleGenerate} disabled={loading} style={{ padding: "12px 32px", fontSize: "14px" }}>
+                {loading ? "Generating..." : "✦ Generate My Resume"}
               </button>
             </div>
           </div>
