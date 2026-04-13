@@ -499,6 +499,7 @@ export default function App() {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [docxLoading, setDocxLoading] = useState(false);
   const [showMemoryPromo, setShowMemoryPromo] = useState(false);
+  const [savedResumeCount, setSavedResumeCount] = useState(0);
   const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
 
   const LOADING_MESSAGES = [
@@ -538,8 +539,11 @@ export default function App() {
       if (u) {
         const c = await getFirestoreCount(u.uid);
         setGenCount(c);
+        const snap = await getDoc(doc(db, "users", u.uid));
+        setSavedResumeCount(snap.exists() ? (snap.data().resumes?.length || 0) : 0);
       } else {
         setGenCount(getLocalCount());
+        setSavedResumeCount(0);
       }
       setAuthLoading(false);
     });
@@ -557,51 +561,153 @@ export default function App() {
   };
 
   const handleDownloadPDF = async () => {
-    const el = document.getElementById("resume-output");
-    if (!el) return;
+    if (!generated) return;
     setPdfLoading(true);
     try {
-      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
-        import("html2canvas"),
-        import("jspdf"),
-      ]);
-
-      // Force A4 width (794px @ 96dpi) so PDF is always full size regardless of screen
-      const A4_PX = 794;
-      const prevWidth = el.style.width;
-      const prevMinWidth = el.style.minWidth;
-      el.style.width = `${A4_PX}px`;
-      el.style.minWidth = `${A4_PX}px`;
-
-      const canvas = await html2canvas(el, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: el.style.background || "#ffffff",
-        windowWidth: A4_PX,
-        width: A4_PX,
-      });
-
-      // Restore original styles
-      el.style.width = prevWidth;
-      el.style.minWidth = prevMinWidth;
-
-      const imgData = canvas.toDataURL("image/jpeg", 0.95);
+      const { default: jsPDF } = await import("jspdf");
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      const pw = 210; // A4 width mm
-      const ph = (canvas.height / canvas.width) * pw;
-      const pageH = 297;
-      let yLeft = ph;
-      let yPos = 0;
-      pdf.addImage(imgData, "JPEG", 0, yPos, pw, ph);
-      yLeft -= pageH;
-      while (yLeft > 0) {
-        yPos -= pageH;
-        pdf.addPage();
-        pdf.addImage(imgData, "JPEG", 0, yPos, pw, ph);
-        yLeft -= pageH;
+
+      const pageW = 210, pageH = 297;
+      const mL = 20, mR = 20, mT = 24;
+      const cW = pageW - mL - mR;
+      let y = mT;
+
+      const hexRgb = (hex) => {
+        const h = hex.replace("#", "");
+        return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+      };
+      const [ar, ag, ab] = hexRgb(selectedTheme.preview.accent);
+
+      const newPage = (need = 8) => {
+        if (y + need > pageH - 16) { pdf.addPage(); y = mT; }
+      };
+
+      const sectionHeader = (title) => {
+        newPage(12);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(8.5);
+        pdf.setTextColor(ar, ag, ab);
+        pdf.text(title.toUpperCase(), mL, y);
+        y += 2;
+        pdf.setDrawColor(ar, ag, ab);
+        pdf.setLineWidth(0.25);
+        pdf.line(mL, y, pageW - mR, y);
+        y += 5;
+        pdf.setTextColor(40, 40, 40);
+      };
+
+      const bodyText = (text, indent = 0, italic = false) => {
+        pdf.setFont("helvetica", italic ? "italic" : "normal");
+        pdf.setFontSize(10);
+        const lines = pdf.splitTextToSize(text, cW - indent);
+        newPage(lines.length * 4.8 + 1);
+        pdf.text(lines, mL + indent, y);
+        y += lines.length * 4.8 + 1;
+      };
+
+      // ── Name ──
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(22);
+      pdf.setTextColor(ar, ag, ab);
+      pdf.text(generated.name || "", mL, y);
+      y += 7;
+
+      // ── Contact ──
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+      pdf.setTextColor(110, 110, 110);
+      const contactStr = (generated.contact || "").replace(/\s*\|\s*/g, "   ·   ");
+      const contactLines = pdf.splitTextToSize(contactStr, cW);
+      pdf.text(contactLines, mL, y);
+      y += contactLines.length * 4.5 + 2;
+
+      // ── Divider ──
+      pdf.setDrawColor(ar, ag, ab);
+      pdf.setLineWidth(0.3);
+      pdf.line(mL, y, pageW - mR, y);
+      y += 7;
+
+      // ── Summary ──
+      if (generated.summary) {
+        sectionHeader("Professional Summary");
+        pdf.setTextColor(50, 50, 50);
+        bodyText(generated.summary);
+        y += 3;
       }
-      pdf.save(`${(generated?.name || "Resume").replace(/\s+/g, "_")}_Resume.pdf`);
+
+      // ── Skills ──
+      if (generated.skills?.length) {
+        sectionHeader("Key Skills");
+        pdf.setTextColor(50, 50, 50);
+        bodyText(generated.skills.join("   ·   "));
+        y += 3;
+      }
+
+      // ── Experience ──
+      if (generated.experience?.length) {
+        sectionHeader("Professional Experience");
+        for (const job of generated.experience) {
+          newPage(14);
+          pdf.setFont("helvetica", "bold");
+          pdf.setFontSize(11);
+          pdf.setTextColor(30, 30, 30);
+          const titleLines = pdf.splitTextToSize(job.title || "", cW);
+          pdf.text(titleLines, mL, y);
+          y += titleLines.length * 5;
+
+          pdf.setFont("helvetica", "italic");
+          pdf.setFontSize(9.5);
+          pdf.setTextColor(110, 110, 110);
+          const companyLines = pdf.splitTextToSize(job.company || "", cW);
+          pdf.text(companyLines, mL, y);
+          y += companyLines.length * 4.5 + 2;
+
+          pdf.setFont("helvetica", "normal");
+          pdf.setFontSize(10);
+          pdf.setTextColor(50, 50, 50);
+          for (const b of job.bullets || []) {
+            const bLines = pdf.splitTextToSize("\u2022  " + b, cW - 4);
+            newPage(bLines.length * 4.8 + 1);
+            pdf.text(bLines, mL + 2, y);
+            y += bLines.length * 4.8 + 1.5;
+          }
+          y += 4;
+        }
+      }
+
+      // ── Education ──
+      if (generated.education?.length) {
+        sectionHeader("Education");
+        for (const edu of generated.education) {
+          newPage(12);
+          pdf.setFont("helvetica", "bold");
+          pdf.setFontSize(11);
+          pdf.setTextColor(30, 30, 30);
+          pdf.text(edu.degree || "", mL, y);
+          y += 5;
+
+          pdf.setFont("helvetica", "italic");
+          pdf.setFontSize(9.5);
+          pdf.setTextColor(110, 110, 110);
+          pdf.text(edu.school || "", mL, y);
+          y += 5;
+
+          if (edu.bullets?.length) {
+            pdf.setFont("helvetica", "normal");
+            pdf.setFontSize(10);
+            pdf.setTextColor(50, 50, 50);
+            for (const b of edu.bullets) {
+              const bLines = pdf.splitTextToSize("\u2022  " + b, cW - 4);
+              newPage(bLines.length * 4.8 + 1);
+              pdf.text(bLines, mL + 2, y);
+              y += bLines.length * 4.8 + 1.5;
+            }
+          }
+          y += 4;
+        }
+      }
+
+      pdf.save(`${(generated.name || "Resume").replace(/\s+/g, "_")}_Resume.pdf`);
     } catch (e) { console.error("PDF error:", e); }
     setPdfLoading(false);
   };
@@ -764,6 +870,7 @@ export default function App() {
         ]);
         setGenCount(currentCount + 1);
         setSavedToast(saveResult || { saved: false, resumeCount: 1 });
+        if (saveResult?.saved) setSavedResumeCount(c => c + 1);
         setTimeout(() => setSavedToast(null), 4000);
       } else {
         incLocalCount();
@@ -1070,6 +1177,43 @@ export default function App() {
                 </div>
               ))}
             </div>
+
+            {/* Memory Status */}
+            {!authLoading && (
+              user ? (
+                <div style={{ background: savedResumeCount > 0 ? "#faf8ff" : "#fafafa", border: `1px solid ${savedResumeCount > 0 ? "#ede9ff" : "#ebebeb"}`, borderRadius: "12px", padding: "16px 18px", marginBottom: "24px", display: "flex", alignItems: "flex-start", gap: "14px" }}>
+                  <div style={{ width: "36px", height: "36px", background: savedResumeCount > 0 ? "#ede9ff" : "#f0f0f0", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={savedResumeCount > 0 ? "#7c3aed" : "#aaa"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "13px", fontWeight: "700", color: savedResumeCount > 0 ? "#7c3aed" : "#555", marginBottom: "3px" }}>
+                      {savedResumeCount > 0 ? `Memory active — ${savedResumeCount} resume${savedResumeCount > 1 ? "s" : ""} stored` : "Memory ready"}
+                    </div>
+                    <div style={{ fontSize: "12px", color: "#888", lineHeight: "1.55" }}>
+                      {savedResumeCount > 0
+                        ? "AI will draw on all your past versions to build the strongest possible match for this role."
+                        : "Upload your first resume and the AI will remember your background for every future application."}
+                    </div>
+                  </div>
+                </div>
+              ) : isFirebaseReady ? (
+                <div style={{ background: "#fafafa", border: "1px solid #ebebeb", borderRadius: "12px", padding: "16px 18px", marginBottom: "24px", display: "flex", alignItems: "flex-start", gap: "14px" }}>
+                  <div style={{ width: "36px", height: "36px", background: "#f0f0f0", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: "13px", fontWeight: "700", color: "#333", marginBottom: "3px" }}>Sign in to unlock AI Memory</div>
+                    <div style={{ fontSize: "12px", color: "#888", lineHeight: "1.55", marginBottom: "10px" }}>
+                      The AI remembers every resume you upload — getting sharper with each application. Your 5 daily tailors become 10.
+                    </div>
+                    <button onClick={handleGoogleSignIn} style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "#fff", border: "1px solid #d0d0d0", borderRadius: "7px", padding: "7px 14px", fontSize: "12px", cursor: "pointer", fontWeight: "600", fontFamily: "inherit" }}>
+                      <svg width="14" height="14" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2a10.3 10.3 0 0 0-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92a8.78 8.78 0 0 0 2.68-6.62z"/><path fill="#34A853" d="M9 18a8.6 8.6 0 0 0 5.96-2.18l-2.91-2.26a5.4 5.4 0 0 1-8.07-2.85H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.98 10.71a5.41 5.41 0 0 1 0-3.42V4.96H.96a9 9 0 0 0 0 8.08l3.02-2.33z"/><path fill="#EA4335" d="M9 3.58a4.86 4.86 0 0 1 3.44 1.35l2.58-2.58A8.64 8.64 0 0 0 9 0 9 9 0 0 0 .96 4.96l3.02 2.33A5.36 5.36 0 0 1 9 3.58z"/></svg>
+                      Continue with Google — it's free
+                    </button>
+                  </div>
+                </div>
+              ) : null
+            )}
 
             <h2 style={{ fontSize: "14px", fontWeight: "700", marginBottom: "6px", color: "#0f0f0f" }}>Upload Your Resume</h2>
             <p style={{ color: "#777", fontSize: "13px", marginBottom: "14px" }}>Upload a file or paste your resume below.</p>

@@ -55,6 +55,7 @@ export default function LandingPage({ onStart, user, onSignIn, onSignOut }) {
           .lp-hero-headline { font-size: 36px !important; letter-spacing: -1px !important; }
           .lp-steps-grid { flex-direction: column !important; }
           .lp-feat-grid { grid-template-columns: 1fr !important; }
+        .lp-memory-flex { flex-direction: column !important; }
           .lp-hero-pad { padding: 60px 20px 40px !important; }
           .lp-section-pad { padding: 56px 20px !important; }
           .lp-cta-section { padding: 48px 24px !important; }
@@ -156,27 +157,86 @@ export default function LandingPage({ onStart, user, onSignIn, onSignOut }) {
         </div>
       </div>
 
-      {/* Features */}
+      {/* Memory Feature — hero section */}
       <div className="lp-section-pad" style={{ padding: "80px 24px", background: "#fff" }}>
+        <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
+          <div className="lp-memory-flex" style={{ display: "flex", alignItems: "center", gap: "60px", flexWrap: "wrap" }}>
+            {/* Left: visual */}
+            <div style={{ flex: "0 0 340px", maxWidth: "340px" }}>
+              <div style={{ background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)", borderRadius: "20px", padding: "32px 28px" }}>
+                <div style={{ fontSize: "11px", fontWeight: "700", color: "#c4b5fd", letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: "20px" }}>Your AI Memory</div>
+                {[
+                  { label: "Software Engineer Resume", date: "Used 4×", active: true },
+                  { label: "Product Manager Resume", date: "Used 2×", active: false },
+                  { label: "Original Resume", date: "Base version", active: false },
+                ].map((r, i) => (
+                  <div key={i} style={{ background: i === 0 ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.07)", borderRadius: "10px", padding: "12px 14px", marginBottom: "8px", display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div style={{ width: "32px", height: "32px", background: i === 0 ? "#fff" : "rgba(255,255,255,0.15)", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={i === 0 ? "#7c3aed" : "#c4b5fd"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: "12px", fontWeight: "600", color: "#fff", marginBottom: "2px" }}>{r.label}</div>
+                      <div style={{ fontSize: "11px", color: "#c4b5fd" }}>{r.date}</div>
+                    </div>
+                  </div>
+                ))}
+                <div style={{ marginTop: "16px", background: "rgba(255,255,255,0.1)", borderRadius: "8px", padding: "10px 14px", fontSize: "11px", color: "#ddd6fe", lineHeight: "1.5" }}>
+                  AI pulls the most relevant experience across all versions for each new role.
+                </div>
+              </div>
+            </div>
+
+            {/* Right: copy */}
+            <div style={{ flex: 1, minWidth: "260px" }}>
+              <div style={{ fontSize: "11px", fontWeight: "700", color: "#7c3aed", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "14px" }}>AI Memory</div>
+              <h2 style={{ fontSize: "34px", fontWeight: "900", letterSpacing: "-1px", lineHeight: "1.1", marginBottom: "18px", color: "#0f0f0f" }}>Gets smarter every time you use it</h2>
+              <p style={{ fontSize: "15px", color: "#555", lineHeight: "1.7", marginBottom: "20px" }}>
+                Sign in and every resume you upload is saved to your AI memory. When you apply to a new role, the AI draws on your entire history — picking the most relevant experience across all versions.
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "28px" }}>
+                {[
+                  "Had a marketing role 2 jobs ago? AI will surface it for a marketing JD.",
+                  "Skills from older resumes automatically included in your master profile.",
+                  "The more you use it, the stronger every new resume becomes.",
+                ].map((point, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                    <div style={{ width: "18px", height: "18px", background: "#ede9ff", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: "1px" }}>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                    <span style={{ fontSize: "13px", color: "#555", lineHeight: "1.6" }}>{point}</span>
+                  </div>
+                ))}
+              </div>
+              <button onClick={onSignIn} style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "#fff", border: "1.5px solid #ddd6fe", borderRadius: "9px", padding: "10px 18px", fontSize: "13px", cursor: "pointer", fontWeight: "600", color: "#7c3aed", fontFamily: "inherit", transition: "border-color 0.15s" }}>
+                <svg width="15" height="15" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2a10.3 10.3 0 0 0-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92a8.78 8.78 0 0 0 2.68-6.62z"/><path fill="#34A853" d="M9 18a8.6 8.6 0 0 0 5.96-2.18l-2.91-2.26a5.4 5.4 0 0 1-8.07-2.85H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.98 10.71a5.41 5.41 0 0 1 0-3.42V4.96H.96a9 9 0 0 0 0 8.08l3.02-2.33z"/><path fill="#EA4335" d="M9 3.58a4.86 4.86 0 0 1 3.44 1.35l2.58-2.58A8.64 8.64 0 0 0 9 0 9 9 0 0 0 .96 4.96l3.02 2.33A5.36 5.36 0 0 1 9 3.58z"/></svg>
+                Sign in free to enable Memory
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Features grid */}
+      <div className="lp-section-pad" style={{ padding: "80px 24px", background: "#fafafa" }}>
         <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: "52px" }}>
             <div style={{ fontSize: "11px", fontWeight: "700", color: "#7c3aed", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "12px" }}>Why ResumeJD</div>
             <h2 style={{ fontSize: "36px", fontWeight: "800", letterSpacing: "-1px", color: "#0f0f0f" }}>Built differently from other resume tools</h2>
           </div>
 
-          <div className="lp-feat-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+          <div className="lp-feat-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px" }}>
             {[
-              { icon: icons.target,  title: "Match Score",           desc: "Get a 0–100 score showing exactly how well your background fits the role. Know before you apply." },
-              { icon: icons.shield,  title: "No Fabrication",        desc: "We never invent jobs, fake credentials, or add experience you don't have. Only your real background, reframed." },
-              { icon: icons.zap,     title: "ATS Optimized",         desc: "Every bullet is rewritten using the job description's exact keywords — so you pass the automated screening." },
-              { icon: icons.layers,  title: "Learns Your Background",desc: "Sign in and the AI remembers every resume you've uploaded — getting better the more you use it." },
-              { icon: icons.bar,     title: "Gap Analysis",          desc: "See exactly which requirements you cover, which you partially bridge, and which are genuine gaps to address." },
-              { icon: icons.export,  title: "PDF & DOCX Export",     desc: "Download your tailored resume as a professionally formatted PDF or Word document, ready to submit." },
+              { icon: icons.target,  title: "Match Score",     desc: "Get a 0–100 score showing exactly how well your background fits the role." },
+              { icon: icons.shield,  title: "No Fabrication",  desc: "Only your real experience, reframed. We never invent jobs or credentials." },
+              { icon: icons.zap,     title: "ATS Optimized",   desc: "Every bullet rewritten using the job description's exact keywords." },
+              { icon: icons.bar,     title: "Gap Analysis",    desc: "See which requirements you cover, bridge, or genuinely miss." },
+              { icon: icons.export,  title: "PDF & DOCX",      desc: "Clean, ATS-readable text-based PDF and Word download." },
+              { icon: icons.layers,  title: "Always Improving",desc: "Each application builds on the last. Your profile gets richer over time." },
             ].map(({ icon, title, desc }) => (
-              <div key={title} className="lp-feat-card">
-                <div style={{ background: "#fff", borderRadius: "10px", padding: "10px", display: "inline-flex", marginBottom: "16px", border: "1px solid #ede9ff" }}>{icon}</div>
-                <div style={{ fontSize: "14px", fontWeight: "700", marginBottom: "8px", color: "#0f0f0f" }}>{title}</div>
-                <div style={{ fontSize: "13px", color: "#777", lineHeight: "1.7" }}>{desc}</div>
+              <div key={title} className="lp-feat-card" style={{ background: "#fff", border: "1px solid #ebebeb" }}>
+                <div style={{ background: "#f0eaff", borderRadius: "10px", padding: "9px", display: "inline-flex", marginBottom: "14px" }}>{icon}</div>
+                <div style={{ fontSize: "13px", fontWeight: "700", marginBottom: "6px", color: "#0f0f0f" }}>{title}</div>
+                <div style={{ fontSize: "12px", color: "#888", lineHeight: "1.65" }}>{desc}</div>
               </div>
             ))}
           </div>
