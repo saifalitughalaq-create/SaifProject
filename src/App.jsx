@@ -939,7 +939,10 @@ export default function App() {
       {/* Header */}
       <div style={{ borderBottom: "1px solid #e4e4e4", background: "#fff", padding: "0 16px" }}>
         <div className="header-inner" style={{ maxWidth: "760px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: "56px" }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
+          <div
+            style={{ display: "flex", alignItems: "baseline", gap: "8px", cursor: "pointer" }}
+            onClick={() => { setStep(0); setGenerated(null); setResumeText(""); setJobDesc(""); }}
+          >
             <span style={{ fontWeight: "800", fontSize: "17px", letterSpacing: "-0.5px" }}>ResumeJD</span>
             <span className="header-tagline" style={{ fontSize: "11px", color: "#999", letterSpacing: "0.1px" }}>AI resume tailored to your job description</span>
           </div>
