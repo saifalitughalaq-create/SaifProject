@@ -3,6 +3,7 @@ import mammoth from "mammoth";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc, increment } from "firebase/firestore";
 import { auth, db, googleProvider, isFirebaseReady } from "./firebase";
+import LandingPage from "./LandingPage";
 
 const THEMES = [
   {
@@ -482,6 +483,7 @@ const ResumePreview = ({ data, theme }) => {
 };
 
 export default function App() {
+  const [showLanding, setShowLanding] = useState(true);
   const [step, setStep] = useState(0);
   const [resumeText, setResumeText] = useState("");
   const [jobDesc, setJobDesc] = useState("");
@@ -764,6 +766,17 @@ export default function App() {
     return true;
   };
 
+  if (showLanding) {
+    return (
+      <LandingPage
+        onStart={() => setShowLanding(false)}
+        user={user}
+        onSignIn={handleGoogleSignIn}
+        onSignOut={handleSignOut}
+      />
+    );
+  }
+
   return (
     <div style={{ minHeight: "100vh", background: "#f4f5f7", fontFamily: "'Helvetica Neue', Helvetica, sans-serif", color: "#1a1a1a" }}>
       <style>{`
@@ -941,7 +954,7 @@ export default function App() {
         <div className="header-inner" style={{ maxWidth: "760px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: "56px" }}>
           <div
             style={{ display: "flex", alignItems: "baseline", gap: "8px", cursor: "pointer" }}
-            onClick={() => { setStep(0); setGenerated(null); setResumeText(""); setJobDesc(""); }}
+            onClick={() => { setShowLanding(true); setStep(0); setGenerated(null); setResumeText(""); setJobDesc(""); }}
           >
             <span style={{ fontWeight: "800", fontSize: "17px", letterSpacing: "-0.5px" }}>ResumeJD</span>
             <span className="header-tagline" style={{ fontSize: "11px", color: "#999", letterSpacing: "0.1px" }}>AI resume tailored to your job description</span>
@@ -1289,7 +1302,7 @@ export default function App() {
             </div>
 
             <div style={{ display: "flex", justifyContent: "center", marginTop: "28px" }}>
-              <button className="btn-ghost" onClick={() => { setStep(0); setGenerated(null); setResumeText(""); setJobDesc(""); }}>
+              <button className="btn-ghost" onClick={() => { setShowLanding(true); setStep(0); setGenerated(null); setResumeText(""); setJobDesc(""); }}>
                 Start Over
               </button>
             </div>
