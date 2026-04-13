@@ -92,7 +92,7 @@ export default function LandingPage({ onStart, user, onSignIn, onSignOut }) {
             Tailor My Resume — Free
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </button>
-          <span style={{ fontSize: "12px", color: "#aaa" }}>No account needed · 3 free tailors per day</span>
+          <span style={{ fontSize: "12px", color: "#aaa" }}>No account needed · 10 free tailors per day</span>
         </div>
 
         {/* Stats bar */}
@@ -182,7 +182,7 @@ export default function LandingPage({ onStart, user, onSignIn, onSignOut }) {
               Tailor My Resume Now
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </button>
-            <div style={{ marginTop: "16px", fontSize: "12px", color: "#a78bfa" }}>Free · No signup required · Takes 30 seconds</div>
+            <div style={{ marginTop: "16px", fontSize: "12px", color: "#a78bfa" }}>Free · 10 tailors per day · No signup required</div>
           </div>
         </div>
       </div>
